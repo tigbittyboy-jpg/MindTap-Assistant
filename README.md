@@ -1,4 +1,4 @@
-# MindTap Study Assistant v.0.3.4
+# MindTap Study Assistant v.0.3.5
 
 A Chrome Manifest V3 extension with a local Python gateway to local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances without a question-count limit, regardless of model-reported confidence. It continues until stopped or a navigation or request error occurs. Confidence is an AI estimate, not a guarantee of correctness.
 
@@ -63,3 +63,8 @@ Qwen3’s thinking mode is optional: set `OLLAMA_THINK=true` before restarting t
 - Reads Learnosity displayed answer text marked `aria-hidden` without duplicate screen-reader text.
 - Handles empty labels, repeated selection labels, and nested custom radio controls.
 - Reports unreadable and duplicate answer-label counts for troubleshooting.
+
+## v.0.3.5 patch notes
+
+- Resolves Learnosity screen-reader label references to the displayed answer copy.
+- Reads displayed answers inside aria-hidden row wrappers while excluding visually hidden rows.

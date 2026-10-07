@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 9) return;
+  if (globalThis.mindtapAssistant?.version === 10) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
@@ -60,24 +60,37 @@
         !controls.some(other => other !== input && label.contains(other)));
       const labelledNodes = (input.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean)
         .map(id => document.getElementById(id)).filter(Boolean)
+        .map(node => node.closest('.lrn-possible-answer') || node)
         .filter(node => !controls.some(other => other !== input &&
           (node.contains(other) || (other.getAttribute('aria-labelledby') || '').split(/\s+/).includes(node.id))));
       // Custom radios often have an empty label or an icon-only parent. Walk only
       // within this answer's row; never read an ancestor containing other choices.
+      const displayedText = node => {
+        const answers = [...node.querySelectorAll('.lrn-possible-answer')].filter(answer => {
+          for (let ancestor = answer; ancestor; ancestor = ancestor.parentElement) {
+            const style = getComputedStyle(ancestor);
+            if (ancestor.hidden || style.display === 'none' || ['hidden', 'collapse'].includes(style.visibility)) return false;
+          }
+          return visible(answer);
+        });
+        if (answers.length !== 1) return '';
+        answerNodes.add(answers[0]);
+        return text(answers[0]);
+      };
       let row = input;
       let rowText = text(row);
       for (let parent = input.parentElement; parent && parent !== document.body && parent !== document.documentElement;
            parent = parent.parentElement) {
         if (controls.some(other => other !== input && parent.contains(other))) break;
         row = parent;
-        rowText = text(row);
+        rowText = displayedText(row) || text(row);
         if (!placeholder(rowText)) break;
       }
       ownLabels.forEach(label => answerNodes.add(label));
       labelledNodes.forEach(node => answerNodes.add(node));
       answerNodes.add(row);
       answerNodes.add(input);
-      const labels = ownLabels.map(label => text(label)).filter(Boolean).join(' ');
+      const labels = ownLabels.map(label => displayedText(label) || text(label)).filter(Boolean).join(' ');
       const labelled = labelledNodes.map(node => text(node)).filter(Boolean).join(' ');
       const candidates = [labels, labelled, rowText, input.getAttribute('aria-label') || ''];
       return candidates.find(value => !placeholder(value)) || candidates.find(Boolean) || '';
@@ -119,7 +132,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 9,
+    version: 10,
     read() { const {controls, ...data} = question(); return data; },
     apply(expected, index) {
       const data = question();

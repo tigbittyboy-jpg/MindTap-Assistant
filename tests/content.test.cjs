@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 9);
+  assert.equal(window.mindtapAssistant.version, 10);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -166,5 +166,26 @@ test('continues to exclude unrelated aria-hidden text and visually hidden Learno
     '<span aria-hidden="true">Incorrect feedback</span></div>' +
     '<div><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">4' +
     '<span style="display:none">hidden explanation</span></div></div></fieldset>');
+  assert.equal(window.mindtapAssistant.read().choices.join(','), '3,4');
+});
+
+
+test('resolves Learnosity screen-reader references to separate visible answer copies', () => {
+  const window = fixture('<section><p class="question-text">Which description defines matter?</p>' +
+    '<div role="radiogroup"><input type="radio" name="q" aria-labelledby="answer-a">' +
+    '<input type="radio" name="q" aria-labelledby="answer-b"></div>' +
+    '<div class="lrn-possible-answer" aria-hidden="true"><div class="lrn_contentWrapper" aria-hidden="true">has mass</div>' +
+    '<div id="answer-a" class="sr-only" aria-hidden="true">has mass</div></div>' +
+    '<div class="lrn-possible-answer" aria-hidden="true"><div class="lrn_contentWrapper" aria-hidden="true">has no mass</div>' +
+    '<div id="answer-b" class="sr-only" aria-hidden="true">has no mass</div></div></section>');
+  const data = window.mindtapAssistant.read();
+  assert.equal(data.choices.join(','), 'has mass,has no mass');
+  assert.equal(data.prompt, 'Which description defines matter?');
+});
+
+test('reads visible Learnosity answer copies inside aria-hidden row wrappers', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' +
+    '<div aria-hidden="true"><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">3</div></div>' +
+    '<div aria-hidden="true"><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">4</div></div></fieldset>');
   assert.equal(window.mindtapAssistant.read().choices.join(','), '3,4');
 });
