@@ -2,8 +2,8 @@
 
 ## v0.6.1
 
-- Add a subtle Austin Taylor · @atslo.m4a footer with an Instagram link.
-- No copyright symbol. Extension-only update; no backend restart needed.
+- Adds "Austin Taylor · @atslo.m4a" footer with an Instagram link.
+- Extension-only update; no backend restart needed.
 
 ## v0.6
 
