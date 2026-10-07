@@ -64,7 +64,7 @@ def ollama_json(path, payload=None, timeout=10):
         return json.load(response)
 
 
-def analyze_ollama(question):
+def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS):
     schema = {'type': 'object', 'properties': {
         'explanation': {'type': 'string'},
         'answer_text': {'type': 'string', 'enum': question['choices']},
@@ -79,7 +79,7 @@ def analyze_ollama(question):
         'stream': False, 'think': thinking == 'true', 'format': schema, 'keep_alive': '5m',
         'options': {'temperature': 0, 'num_ctx': 4096, 'num_predict': 2048},
         'messages': [
-            {'role': 'system', 'content': ANSWER_INSTRUCTIONS + (' /no_think' if thinking == 'false' else '')},
+            {'role': 'system', 'content': instructions + (' /no_think' if thinking == 'false' else '')},
             {'role': 'user', 'content': json.dumps(model_question(question))}]}
     try:
         timeout = int(os.environ.get('OLLAMA_TIMEOUT_SECONDS', '90'))
@@ -95,8 +95,27 @@ def analyze_ollama(question):
     return {**validate_answer(result, question, 'Ollama'), 'provider': 'ollama', 'model': payload['model'], 'thinking': thinking == 'true'}
 
 
+CHECK_INSTRUCTIONS = (
+    ANSWER_INSTRUCTIONS + ' Independently solve this question as a careful second examiner. '
+    'Identify the exact application, conditions, and qualifiers before comparing EVERY option. '
+    'Reject answers that fit a related topic but not the specified use. '
+    'For calculations, recompute and check units. Give a concise justification for the best option.'
+)
+
+
 def analyze(data):
-    return analyze_ollama(validate_question(data))
+    question = validate_question(data)
+    first = analyze_ollama(question)
+    # A separate conversation sees only the original question, never the first answer.
+    second = analyze_ollama(question, CHECK_INSTRUCTIONS)
+    if first['index'] != second['index']:
+        raise ValueError(
+            'Double check disagreed. Automatic selection paused; review the question manually. '
+            f"First pass: {first['answer_text']} — {first['explanation']}\n"
+            f"Second pass: {second['answer_text']} — {second['explanation']}")
+    return {**first, 'confidence': min(first['confidence'], second['confidence']),
+            'double_checked': True, 'check_explanation': second['explanation']}
+
 
 
 def provider_error(error):

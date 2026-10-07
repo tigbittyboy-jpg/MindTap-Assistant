@@ -4,7 +4,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-function harness({count = 30, selectionMismatch = false, answerMismatch = false} = {}) {
+function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false} = {}) {
   let listener, cursor = 0, selected = -1, transitionalReads = 0;
   const session = {}, local = {}, requests = [], clicks = [];
   const data = () => ({prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4'], fingerprint: `q${cursor}`});
@@ -39,7 +39,8 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false}
     setTimeout: fn => queueMicrotask(fn), AbortSignal, Date,
     fetch: async (_url, request) => {
       const body = JSON.parse(request.body); requests.push(body);
-      return {ok: true, json: async () => ({index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
+      if (disagreement) return {ok: false, json: async () => ({error: 'Double check disagreed. Review manually.'})};
+      return {ok: true, json: async () => ({double_checked: !unchecked, check_explanation: 'Four is the only matching result.', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
   vm.runInContext(source, context);
@@ -69,4 +70,17 @@ test('answer text/index mismatch is rejected before selection or advancement', a
   const app = harness({answerMismatch: true}); await app.start();
   assert.equal(app.clicks.length, 0);
   assert.match(app.session.runHistory[0].error, /disagree/);
+});
+
+
+test('double-check disagreement prevents selection and advancement', async () => {
+  const app = harness({disagreement: true}); await app.start();
+  assert.equal(app.clicks.length, 0);
+  assert.match(app.local.status, /Double check disagreed/);
+  assert.equal(app.session.runHistory[0].selectionVerified, undefined);
+});
+test('older unchecked backend cannot trigger automatic selection', async () => {
+  const app = harness({unchecked: true}); await app.start();
+  assert.equal(app.clicks.length, 0);
+  assert.match(app.local.status, /Double check missing/);
 });

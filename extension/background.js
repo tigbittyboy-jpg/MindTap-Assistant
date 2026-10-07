@@ -50,29 +50,30 @@ async function verifySelection(tabId, answer) {
 async function analyze(tabId) {
   suggestions.delete(tabId);
   const data = await stableQuestion(tabId);
-  await report('Analyzing question…');
+  await report('Analyzing and independently double-checking…');
   const historyId = crypto.randomUUID();
   await recordHistory({id: historyId, timestamp: new Date().toISOString(), prompt: data.prompt, choices: data.choices});
   let answer;
   try {
     const response = await fetch('http://127.0.0.1:8765/analyze', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt: data.prompt, choices: data.choices}), signal: AbortSignal.timeout(105000)
+      body: JSON.stringify({prompt: data.prompt, choices: data.choices}), signal: AbortSignal.timeout(195000)
     });
     answer = await response.json();
     if (!response.ok) throw Error(answer.error || 'Backend request failed.');
+    if (answer.double_checked !== true || typeof answer.check_explanation !== 'string' || !answer.check_explanation.trim()) throw Error('Double check missing. Restart the v0.4 backend before selecting answers.');
     if (!Number.isInteger(answer.index) || answer.index < 0 || answer.index >= data.choices.length ||
         !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
     if (answer.answer_text !== undefined && answer.answer_text !== data.choices[answer.index]) throw Error('AI answer text and index disagree.');
     await recordHistory({id: historyId, suggestedIndex: answer.index, suggestedText: data.choices[answer.index], confidence: answer.confidence,
-      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking});
+      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, doubleChecked: answer.double_checked, checkExplanation: answer.check_explanation});
   } catch (error) {
     await recordHistory({id: historyId, error: error.message});
     throw error;
   }
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}`);
+  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\nIndependent check agreed: ${answer.check_explanation}`);
   return suggestion;
 }
 async function automate(tabId) {

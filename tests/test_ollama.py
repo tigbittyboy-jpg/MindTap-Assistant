@@ -21,6 +21,8 @@ class OllamaIntegrationTests(unittest.TestCase):
                 payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                 owner.payloads.append((self.path, payload, self.headers.get('x-goog-api-key')))
                 answer = {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': '2 + 2 = 4.'}
+                if owner.disagreement and len(owner.payloads) == 2:
+                    answer.update(index=0, answer_text='3', explanation='Different independent result.')
                 if owner.invalid:
                     answer['index'] = 99
                 if owner.mismatch:
@@ -32,6 +34,7 @@ class OllamaIntegrationTests(unittest.TestCase):
                 self.send_header('Content-Length', str(len(encoded)))
                 self.end_headers()
                 self.wfile.write(encoded)
+        self.disagreement = False
         self.invalid = False
         self.mismatch = False
         self.model_server = ThreadingHTTPServer(('127.0.0.1', 0), FakeOllama)
@@ -51,8 +54,15 @@ class OllamaIntegrationTests(unittest.TestCase):
             data=json.dumps({'prompt': '2+2?', 'choices': ['3', '4']}).encode(),
             headers={'Content-Type': 'application/json', 'Origin': 'chrome-extension://test'})
         with self.client.open(request, timeout=5) as response:
-            self.assertEqual(json.load(response)['index'], 1)
+            result = json.load(response)
+            self.assertEqual(result['index'], 1)
+            self.assertTrue(result['double_checked'])
+            self.assertEqual(result['check_explanation'], '2 + 2 = 4.')
             self.assertEqual(response.headers['Access-Control-Allow-Origin'], 'chrome-extension://test')
+        self.assertEqual(len(self.payloads), 2)
+        self.assertEqual(self.payloads[0][1]['messages'][1], self.payloads[1][1]['messages'][1])
+        self.assertNotEqual(self.payloads[0][1]['messages'][0], self.payloads[1][1]['messages'][0])
+        self.assertEqual(len(self.payloads[1][1]['messages']), 2)
         path, payload, key = self.payloads[0]
         self.assertEqual(path, '/api/chat')
         self.assertEqual(payload['model'], 'qwen3:8b')
@@ -92,3 +102,17 @@ class OllamaIntegrationTests(unittest.TestCase):
         payload = self.payloads[0][1]
         self.assertTrue(payload['think'])
         self.assertNotIn('/no_think', payload['messages'][0]['content'])
+
+    def test_disagreement_returns_http_error_with_both_answers(self):
+        self.disagreement = True
+        request = urllib.request.Request(f'http://127.0.0.1:{self.gateway.server_port}/analyze',
+            data=json.dumps({'prompt': '2+2?', 'choices': ['3', '4']}).encode(),
+            headers={'Content-Type': 'application/json'})
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.client.open(request, timeout=5)
+        self.assertEqual(caught.exception.code, 400)
+        message = json.load(caught.exception)['error']
+        self.assertIn('Double check disagreed', message)
+        self.assertIn('First pass: 4', message)
+        self.assertIn('Second pass: 3', message)
+        self.assertEqual(len(self.payloads), 2)

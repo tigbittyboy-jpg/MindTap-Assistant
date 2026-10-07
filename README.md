@@ -1,4 +1,4 @@
-# MindTap Study Assistant v.0.3.7
+# MindTap Study Assistant v0.4
 
 A Chrome Manifest V3 extension with a local Python gateway to local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances without a question-count limit, regardless of model-reported confidence. It continues until stopped or a navigation or request error occurs. Confidence is an AI estimate, not a guarantee of correctness.
 
@@ -45,7 +45,7 @@ DOM detection regression tests: with Node 20.19+ (or a newer supported release),
 
 ## Local connection troubleshooting
 
-Run `python3 backend/server.py --check-connection` to verify that Ollama responds and the selected model is installed. If connection fails, open the Ollama app or run `ollama serve`. If the model is missing, run `ollama pull qwen3:8b` (or your selected `OLLAMA_MODEL`). Generation waits up to 90 seconds by default; `OLLAMA_TIMEOUT_SECONDS` accepts 5–90 seconds. The extension waits up to 105 seconds. Health and connection checks do not establish that generation works. Automatic mode stops on request errors.
+Run `python3 backend/server.py --check-connection` to verify that Ollama responds and the selected model is installed. If connection fails, open the Ollama app or run `ollama serve`. If the model is missing, run `ollama pull qwen3:8b` (or your selected `OLLAMA_MODEL`). Generation waits up to 90 seconds by default; `OLLAMA_TIMEOUT_SECONDS` accepts 5–90 seconds. The extension waits up to 195 seconds for both passes. Health and connection checks do not establish that generation works. Automatic mode stops on request errors.
 
 If Next detection fails, turn off automatic mode, click **Choose Next button** in the extension, then click the actual Next control on the page within 30 seconds. That identifying click is intercepted and does not advance. Reopen the extension and click **Click Next**, or restart automatic mode. The chosen control is remembered for the current document; refresh, full navigation, or replacement of that element requires choosing it again. Escape cancels selection. Automatic detection still refuses ambiguous controls.
 
@@ -79,3 +79,12 @@ Qwen3’s thinking mode is optional: set `OLLAMA_THINK=true` before restarting t
 - Added a navy and indigo book icon with a mint sparkle.
 - Configured 16px/32px toolbar icons and 48px/128px extension listing icons.
 - Removed white corner backgrounds and regenerated all icon sizes with transparency.
+
+## v0.4 patch notes
+
+- Every analysis runs two sequential Ollama conversations; the second receives the original question without the first answer.
+- The second pass emphasizes exact application, qualifiers, every option, and unit checks.
+- Agreement returns both explanations and the lower confidence estimate. Agreement is not proof of correctness.
+- Disagreement stops automatic mode before selecting or advancing and displays both answers for manual review. No suggestion is stored on failure.
+- The extension refuses unchecked responses from older backends. Update both extension and backend.
+- Each pass uses OLLAMA_TIMEOUT_SECONDS (5–90, default 90); the extension allows 195 seconds total. Expect roughly twice the generation time. Thinking remains off by default; to turn it off in an existing terminal, run `export OLLAMA_THINK=false` before restarting.
