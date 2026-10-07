@@ -13,3 +13,21 @@ for (const action of ['analyze', 'apply', 'next', 'chooseNext', 'stop', 'saveTex
 }
 chrome.storage.local.get('status').then(result => { if (result.status) status.textContent = result.status; });
 chrome.storage.onChanged.addListener(changes => { if (changes.status) status.textContent = changes.status.newValue; });
+
+const textbookToggle = document.querySelector('#autoSaveTextbook');
+const textbookStatus = document.querySelector('#textbookStatus');
+chrome.storage.local.get(['autoSaveTextbook', 'textbookSaveStatus']).then(settings => {
+  textbookToggle.checked = settings.autoSaveTextbook === true;
+  textbookStatus.textContent = settings.textbookSaveStatus || (textbookToggle.checked ? 'Auto-save is on. Open a textbook section.' : 'Textbook auto-save is off.');
+});
+textbookToggle.addEventListener('change', async () => {
+  try {
+    await chrome.storage.local.set({autoSaveTextbook: textbookToggle.checked});
+    textbookStatus.textContent = textbookToggle.checked ? 'Auto-save is on. Open a textbook section.' : 'Textbook auto-save is off.';
+  } catch (error) { textbookStatus.textContent = error.message; }
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.textbookSaveStatus) textbookStatus.textContent = changes.textbookSaveStatus.newValue;
+  if (changes.autoSaveTextbook) textbookToggle.checked = changes.autoSaveTextbook.newValue === true;
+});

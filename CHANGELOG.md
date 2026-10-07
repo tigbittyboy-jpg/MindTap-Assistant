@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.5.2
+
+- Optional automatic saving of each opened Cengage textbook section after text stabilizes.
+- Persistent toggle, duplicate detection, separate textbook status, and stop on save errors.
+- Added ebook reader access for automatic capture; no automated navigation or whole-book fetching.
+
 ## v0.5.1
 
 - Read textbook paragraphs from Cengage’s same-origin iframe-page reader frame.

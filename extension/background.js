@@ -70,20 +70,24 @@ function findReferences(data, sections) {
   return candidates.sort((a, b) => b.score - a.score).slice(0, 3).map(({source, text}) => ({source, text}));
 }
 let textbookSaveQueue = Promise.resolve();
-function saveTextbook(tabId) {
-  const pending = textbookSaveQueue.catch(() => {}).then(() => saveTextbookSection(tabId));
+function saveTextbook(tabId, automatic = false) {
+  const pending = textbookSaveQueue.catch(() => {}).then(() => saveTextbookSection(tabId, automatic));
   textbookSaveQueue = pending;
   return pending;
 }
-async function saveTextbookSection(tabId) {
+async function saveTextbookSection(tabId, automatic) {
+  if (automatic && !(await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook) return {message: 'Auto-save is off.'};
   const section = await page(tabId, 'textbook');
+  if (automatic && !(await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook) return {message: 'Auto-save is off.'};
   const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
-  if (textbookSections.some(item => item.text === section.text)) return report(`Already saved: ${section.title}`);
+  if (textbookSections.some(item => item.text === section.text)) return {message: `Already saved: ${section.title}`};
   const archive = [...textbookSections, section];
   const bytes = new TextEncoder().encode(JSON.stringify(archive)).length;
   if (bytes > 500 * 1024 * 1024) throw Error('Textbook archive has reached its 500 MB limit.');
   await chrome.storage.local.set({textbookSections: archive});
-  return report(`Saved: ${section.title}\n${archive.length} section(s) · ${(bytes / (1024 * 1024)).toFixed(2)} MB of 500 MB used.`);
+  const message = `Saved: ${section.title}\n${archive.length} section(s) · ${(bytes / (1024 * 1024)).toFixed(2)} MB of 500 MB used.`;
+  await chrome.storage.local.set({textbookSaveStatus: message});
+  return automatic ? {message} : report(message);
 }
 async function analyze(tabId) {
   suggestions.delete(tabId);
@@ -170,7 +174,16 @@ async function automate(tabId) {
   finally { running = false; }
 }
 chrome.runtime.onMessage.addListener((request, sender, reply) => {
-  if (sender.id !== chrome.runtime.id || sender.tab) return;
+  if (sender.id !== chrome.runtime.id) return;
+  if (sender.tab) {
+    if (request.action !== 'autoSaveTextbook' || sender.frameId !== 0 ||
+        !/^https:\/\/ebooks\.cengage\.com\//.test(sender.url || '')) return;
+    saveTextbook(sender.tab.id, true).then(reply).catch(async error => {
+      await chrome.storage.local.set({textbookSaveStatus: error.message});
+      reply({error: error.message});
+    });
+    return true;
+  }
   (async () => {
     if (request.action === 'stop') { stopped = true; return report('Stop requested.'); }
     if (request.action === 'saveTextbook') return saveTextbook(request.tabId);
