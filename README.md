@@ -4,7 +4,7 @@ A Chrome extension with two modes: find saved textbook passages without AI, or a
 
 The model assumes stationary residential and light commercial HVAC, refrigeration, and heat pumps. Automotive context applies only when the question explicitly calls for it.
 
-The AI can still be wrong, even with textbook references. Use it where study assistance is allowed.
+The AI can still be wrong, even with textbook references. 
 
 ## Textbook-only setup: no AI or backend
 
