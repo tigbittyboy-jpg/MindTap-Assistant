@@ -20,9 +20,11 @@ class OllamaIntegrationTests(unittest.TestCase):
             def do_POST(self):
                 payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                 owner.payloads.append((self.path, payload, self.headers.get('x-goog-api-key')))
-                answer = {'index': 1, 'confidence': .95, 'explanation': '2 + 2 = 4.'}
+                answer = {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': '2 + 2 = 4.'}
                 if owner.invalid:
                     answer['index'] = 99
+                if owner.mismatch:
+                    answer['answer_text'] = '3'
                 self.respond({'message': {'content': json.dumps(answer)}})
             def respond(self, data):
                 encoded = json.dumps(data).encode()
@@ -31,6 +33,7 @@ class OllamaIntegrationTests(unittest.TestCase):
                 self.end_headers()
                 self.wfile.write(encoded)
         self.invalid = False
+        self.mismatch = False
         self.model_server = ThreadingHTTPServer(('127.0.0.1', 0), FakeOllama)
         self.gateway = ThreadingHTTPServer(('127.0.0.1', 0), server.Handler)
         for instance in [self.model_server, self.gateway]:
@@ -56,6 +59,9 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertFalse(payload['stream'])
         self.assertFalse(payload['think'])
         self.assertIsNone(key)
+        question = json.loads(payload['messages'][1]['content'])
+        self.assertEqual(question['choices'], [{'index': 0, 'text': '3'}, {'index': 1, 'text': '4'}])
+        self.assertIn('answer_text', payload['format']['required'])
 
     def test_health_identifies_ollama(self):
         with self.client.open(f'http://127.0.0.1:{self.gateway.server_port}/health', timeout=5) as response:
@@ -74,3 +80,15 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.invalid = True
         with self.assertRaisesRegex(ValueError, 'Ollama returned an invalid answer'):
             server.analyze({'prompt': '2+2?', 'choices': ['3', '4']})
+
+    def test_inconsistent_answer_text_rejected(self):
+        self.mismatch = True
+        with self.assertRaisesRegex(ValueError, 'Ollama returned an invalid answer'):
+            server.analyze({'prompt': '2+2?', 'choices': ['3', '4']})
+
+    @patch.dict(os.environ, {'OLLAMA_THINK': 'true'})
+    def test_reasoning_can_be_enabled(self):
+        server.analyze({'prompt': '2+2?', 'choices': ['3', '4']})
+        payload = self.payloads[0][1]
+        self.assertTrue(payload['think'])
+        self.assertNotIn('/no_think', payload['messages'][0]['content'])

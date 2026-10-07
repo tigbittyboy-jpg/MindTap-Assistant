@@ -1,13 +1,19 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 5) return;
+  if (globalThis.mindtapAssistant?.version === 6) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
-  const text = el => {
-    if (!el) return '';
-    const copy = el.cloneNode(true);
-    copy.querySelectorAll('script,style,svg,[aria-hidden="true"],.material-icons,mat-icon').forEach(node => node.remove());
-    copy.querySelectorAll('sup').forEach(node => node.replaceWith(`^(${node.textContent})`));
-    copy.querySelectorAll('sub').forEach(node => node.replaceWith(`_(${node.textContent})`));
-    return (copy.innerText || copy.textContent || '').replace(/\s+/g, ' ').trim();
+  const text = (el, excluded = new Set()) => {
+    const read = node => {
+      if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+      if (node.nodeType !== Node.ELEMENT_NODE || excluded.has(node)) return '';
+      if (node.matches('script,style,svg,[aria-hidden="true"],[hidden],.material-icons,mat-icon')) return '';
+      const style = getComputedStyle(node);
+      if (style.display === 'none' || ['hidden', 'collapse'].includes(style.visibility)) return '';
+      const value = [...node.childNodes].map(read).join('');
+      if (node.tagName === 'SUP') return `^(${value})`;
+      if (node.tagName === 'SUB') return `_(${value})`;
+      return /^(P|DIV|LI|BR|LEGEND|LABEL|SECTION|H[1-6])$/.test(node.tagName) ? ` ${value} ` : value;
+    };
+    return el ? read(el).replace(/\s+/g, ' ').trim() : '';
   };
   let chosenNext = null;
   const enabled = el => el.isConnected && visible(el) && !el.disabled && !el.closest('[aria-disabled="true"],[inert]');
@@ -30,28 +36,37 @@
     return buttons[0];
   }
   function question() {
-    const inputs = [...document.querySelectorAll('input[type=radio], [role=radio]')].filter(visible);
+    const inputs = [...document.querySelectorAll('input[type=radio], [role=radio]')]
+      .filter(el => visible(el) || [...(el.labels || [])].some(visible))
+      .filter(el => !(el.matches('[role=radio]') && el.querySelector('input[type=radio]')));
     const groups = new Map();
     for (const input of inputs) {
       const key = input.closest('[role=radiogroup],fieldset') || input.name || 'default';
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(input);
     }
+    if (inputs.some(input => input.closest('[aria-busy="true"]'))) throw Error('Question is still loading.');
     if (groups.size !== 1) throw Error('Expected one visible multiple-choice question. Open a single question.');
     const controls = [...groups.values()][0];
     if (controls.length < 2 || controls.length > 12) throw Error('Unsupported answer choices.');
     const choices = controls.map(input => {
       const labelled = (input.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean).map(id => text(document.getElementById(id))).join(' ');
-      const labels = input.labels ? [...input.labels].map(text).join(' ') : '';
+      const labels = input.labels ? [...input.labels].map(label => text(label)).join(' ') : '';
       return labels || labelled || input.getAttribute('aria-label') || text(input.closest('label')) || text(input.parentElement);
     });
     if (choices.some(choice => !choice) || new Set(choices).size !== choices.length) throw Error('Could not read distinct answer labels.');
+    const answerNodes = new Set();
+    controls.forEach(control => {
+      if (control.labels?.length) [...control.labels].forEach(label => answerNodes.add(label));
+      else answerNodes.add(control.closest('label,[role=radio]') || control.parentElement);
+      answerNodes.add(control);
+    });
     let container = controls[0].closest('fieldset,[role=radiogroup]') || controls[0].parentElement;
     while (container.parentElement && !controls.every(input => container.contains(input))) container = container.parentElement;
     // Prefer explicit question elements; answer controls can be deeply nested.
     let prompt = '';
     let promptContainer = container;
-    const selectors = 'legend,[data-question-text],.question-text,.questionText,.question-stem,.questionStem,.question-prompt,.stem,[role=heading]';
+    const selectors = 'legend,[data-question-text],.question-text,.questionText,.question-stem,.questionStem,.question-prompt,.stem';
     for (let depth = 0; !prompt && container && depth < 14; depth++, container = container.parentElement) {
       const candidates = [...container.querySelectorAll(selectors)]
         .filter(el => visible(el) && !controls.some(input => el.contains(input)))
@@ -63,12 +78,11 @@
       }
       // Never fall back to unrelated text from the whole document.
       if (container === document.body || container === document.documentElement) break;
-      const candidate = text(container);
-      if (candidate.length > 12000) continue;
-      let cleaned = candidate;
-      for (const choice of choices) cleaned = cleaned.replace(choice, '');
-      cleaned = cleaned.replace(/\s+/g, ' ').trim();
-      if (cleaned && !/^(next|continue|select (one|an answer)|submit)$/i.test(cleaned)) {
+      const excluded = new Set(answerNodes);
+      container.querySelectorAll('button,a,[role=button],[role=navigation],[role=progressbar],.pagination').forEach(el => excluded.add(el));
+      const cleaned = text(container, excluded);
+      if (cleaned.length > 12000) continue;
+      if (cleaned && !/^(next|continue|select (one|an answer)|submit|\d+\s+of\s+\d+)$/i.test(cleaned)) {
         prompt = cleaned;
         promptContainer = container;
       }
@@ -79,7 +93,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 5,
+    version: 6,
     read() { const {controls, ...data} = question(); return data; },
     apply(expected, index) {
       const data = question();
@@ -89,6 +103,13 @@
       control.click();
       if (!(control.checked || control.getAttribute('aria-checked') === 'true')) throw Error('Selection could not be verified.');
       return 'Answer selected.';
+    },
+    verify(expected, index) {
+      const data = question();
+      if (data.fingerprint !== expected) throw Error('Question changed before selection could be verified.');
+      const selected = data.controls.map((control, i) => control.checked || control.getAttribute('aria-checked') === 'true' ? i : -1).filter(i => i >= 0);
+      if (selected.length !== 1 || selected[0] !== index) throw Error('The displayed selected answer does not match the suggestion.');
+      return {index, text: data.choices[index]};
     },
     chooseNext() {
       return new Promise((resolve, reject) => {

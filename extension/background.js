@@ -13,44 +13,104 @@ async function page(tabId, operation, args = []) {
   if (results[0].result.error) throw Error(results[0].result.error);
   return results[0].result.value;
 }
+let historyQueue = Promise.resolve();
+function recordHistory(entry) {
+  historyQueue = historyQueue.catch(() => {}).then(async () => {
+    const {runHistory = []} = await chrome.storage.session.get('runHistory');
+    const existing = runHistory.findIndex(item => item.id === entry.id);
+    if (existing < 0) runHistory.push(entry);
+    else runHistory[existing] = {...runHistory[existing], ...entry};
+    await chrome.storage.session.set({runHistory: runHistory.slice(-100)});
+  });
+  return historyQueue;
+}
+async function stableQuestion(tabId) {
+  let previous = await page(tabId, 'read');
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await delay(250);
+    const current = await page(tabId, 'read');
+    if (current.fingerprint === previous.fingerprint) return current;
+    previous = current;
+  }
+  throw Error('The question is still changing. Wait for it to load and analyze again.');
+}
+async function verifySelection(tabId, answer) {
+  let lastError;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await delay(100);
+    try {
+      const selected = await page(tabId, 'verify', [answer.fingerprint, answer.index]);
+      await recordHistory({id: answer.historyId, selectedIndex: selected.index, selectedText: selected.text, selectionVerified: true});
+      return selected;
+    } catch (error) { lastError = error; }
+  }
+  await recordHistory({id: answer.historyId, selectionVerified: false, error: lastError.message});
+  throw lastError;
+}
 async function analyze(tabId) {
   suggestions.delete(tabId);
-  const data = await page(tabId, 'read');
+  const data = await stableQuestion(tabId);
   await report('Analyzing question…');
-  const response = await fetch('http://127.0.0.1:8765/analyze', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({prompt: data.prompt, choices: data.choices}), signal: AbortSignal.timeout(105000)
-  });
-  const answer = await response.json();
-  if (!response.ok) throw Error(answer.error || 'Backend request failed.');
-  if (!Number.isInteger(answer.index) || answer.index < 0 || answer.index >= data.choices.length ||
-      !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
-  const suggestion = {...answer, fingerprint: data.fingerprint};
+  const historyId = crypto.randomUUID();
+  await recordHistory({id: historyId, timestamp: new Date().toISOString(), prompt: data.prompt, choices: data.choices});
+  let answer;
+  try {
+    const response = await fetch('http://127.0.0.1:8765/analyze', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: data.prompt, choices: data.choices}), signal: AbortSignal.timeout(105000)
+    });
+    answer = await response.json();
+    if (!response.ok) throw Error(answer.error || 'Backend request failed.');
+    if (!Number.isInteger(answer.index) || answer.index < 0 || answer.index >= data.choices.length ||
+        !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
+    if (answer.answer_text !== undefined && answer.answer_text !== data.choices[answer.index]) throw Error('AI answer text and index disagree.');
+    await recordHistory({id: historyId, suggestedIndex: answer.index, suggestedText: data.choices[answer.index], confidence: answer.confidence,
+      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking});
+  } catch (error) {
+    await recordHistory({id: historyId, error: error.message});
+    throw error;
+  }
+  const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
   await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}`);
   return suggestion;
 }
 async function automate(tabId) {
   running = true; stopped = false;
+  const seen = new Set();
+  let answer;
   try {
     while (!stopped) {
-      const answer = await analyze(tabId);
+      answer = await analyze(tabId);
+      if (seen.has(answer.fingerprint)) throw Error('Automatic mode stopped: this question was already processed.');
+      seen.add(answer.fingerprint);
       if (stopped) break;
       await page(tabId, 'apply', [answer.fingerprint, answer.index]);
+      await verifySelection(tabId, answer);
       await delay(750);
       if (stopped) break;
+      await page(tabId, 'verify', [answer.fingerprint, answer.index]);
       await page(tabId, 'next', [answer.fingerprint]);
+      await recordHistory({id: answer.historyId, nextClicked: true});
       suggestions.delete(tabId);
       let changed = false;
+      let previousFingerprint;
       for (let attempt = 0; attempt < 20 && !stopped; attempt++) {
         await delay(500);
-        try { changed = (await page(tabId, 'read')).fingerprint !== answer.fingerprint; } catch { continue; }
+        try {
+          const fingerprint = (await page(tabId, 'read')).fingerprint;
+          changed = fingerprint !== answer.fingerprint && fingerprint === previousFingerprint;
+          previousFingerprint = fingerprint;
+        } catch { previousFingerprint = undefined; continue; }
         if (changed) break;
       }
       if (!changed && !stopped) throw Error('Automatic mode stopped: next question did not appear.');
     }
     await report('Automatic mode stopped.');
-  } catch (error) { await report(error.message); }
+  } catch (error) {
+    if (answer?.historyId) await recordHistory({id: answer.historyId, error: error.message});
+    await report(error.message);
+  }
   finally { running = false; }
 }
 chrome.runtime.onMessage.addListener((request, sender, reply) => {
@@ -69,9 +129,15 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
     if (request.action === 'chooseNext') return report(await page(request.tabId, 'chooseNext'));
     const answer = suggestions.get(request.tabId);
     if (!answer) throw Error('Analyze this question first.');
-    if (request.action === 'apply') return report(await page(request.tabId, 'apply', [answer.fingerprint, answer.index]));
+    if (request.action === 'apply') {
+      await page(request.tabId, 'apply', [answer.fingerprint, answer.index]);
+      await verifySelection(request.tabId, answer);
+      return report('Answer selected and verified.');
+    }
     if (request.action === 'next') {
+      await verifySelection(request.tabId, answer);
       const result = await page(request.tabId, 'next', [answer.fingerprint]);
+      await recordHistory({id: answer.historyId, nextClicked: true});
       suggestions.delete(request.tabId);
       return report(result);
     }

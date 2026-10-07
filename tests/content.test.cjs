@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 5);
+  assert.equal(window.mindtapAssistant.version, 6);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -73,4 +73,26 @@ test('ambiguous navigation refuses to click until user chooses a control', async
   // A removed selected control is never clicked again.
   assert.throws(() => helper.next(fingerprint), /no longer available/);
   assert.equal(clicks, 1);
+});
+
+test('does not remove answer words or numbers from the question', () => {
+  const window = fixture('<section><p>Which number equals 4?</p><div>' + choices + '</div></section>');
+  assert.equal(window.mindtapAssistant.read().prompt, 'Which number equals 4?');
+});
+test('ignores hidden explanation text when reading labels and prompts', () => {
+  const window = fixture('<section><p>Which number equals 4?</p><p style="display:none">Incorrect: answer is 99.</p>' +
+    '<div><label><input type="radio" name="q">3<span hidden>correct</span></label><label><input type="radio" name="q">4</label></div></section>');
+  const data = window.mindtapAssistant.read();
+  assert.equal(data.prompt, 'Which number equals 4?');
+  assert.equal(data.choices.join(','), '3,4');
+});
+test('deduplicates role wrappers and verifies the currently selected answer', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend><div role="radio"><label><input type="radio" name="q">3</label></div><div role="radio"><label><input type="radio" name="q">4</label></div></fieldset>');
+  const helper = window.mindtapAssistant;
+  const data = helper.read();
+  assert.equal(data.choices.length, 2);
+  helper.apply(data.fingerprint, 1);
+  assert.equal(helper.verify(data.fingerprint, 1).text, '4');
+  window.document.querySelector('input').click();
+  assert.throws(() => helper.verify(data.fingerprint, 1), /does not match/);
 });

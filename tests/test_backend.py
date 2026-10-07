@@ -19,7 +19,7 @@ class BackendTests(unittest.TestCase):
     @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder', 'GEMINI_TIMEOUT_SECONDS': '75'})
     def test_provider_contract(self):
         provider = {'candidates': [{'content': {'parts': [{'text': json.dumps(
-            {'index': 1, 'confidence': .95, 'explanation': 'Two plus two is four.'})}]}}]}
+            {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': 'Two plus two is four.'})}]}}]}
         with patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(provider).encode())) as fetch:
             self.assertEqual(analyze({'prompt': '2+2?', 'choices': ['3', '4']})['index'], 1)
             self.assertEqual(fetch.call_args.kwargs['timeout'], 75)
@@ -30,9 +30,9 @@ class BackendTests(unittest.TestCase):
 
     @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder'})
     def test_invalid_answer_rejected(self):
-        for answer in [{'index': 99, 'confidence': .99, 'explanation': 'x'},
-                       {'index': True, 'confidence': .99, 'explanation': 'x'},
-                       {'index': 0, 'confidence': 2, 'explanation': 'x'}]:
+        for answer in [{'index': 99, 'answer_text': '3', 'confidence': .99, 'explanation': 'x'},
+                       {'index': True, 'answer_text': '3', 'confidence': .99, 'explanation': 'x'},
+                       {'index': 0, 'answer_text': '3', 'confidence': 2, 'explanation': 'x'}]:
             provider = {'candidates': [{'content': {'parts': [{'text': json.dumps(answer)}]}}]}
             with patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(provider).encode())):
                 with self.assertRaises(ValueError):
