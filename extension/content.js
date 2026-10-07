@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 3) return;
+  if (globalThis.mindtapAssistant?.version === 4) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = el => {
     if (!el) return '';
@@ -9,6 +9,26 @@
     copy.querySelectorAll('sub').forEach(node => node.replaceWith(`_(${node.textContent})`));
     return (copy.innerText || copy.textContent || '').replace(/\s+/g, ' ').trim();
   };
+  let chosenNext = null;
+  const enabled = el => el.isConnected && visible(el) && !el.disabled && !el.closest('[aria-disabled="true"],[inert]');
+  function nextLabel(value) {
+    return /^(next(?: question| page)?|continue)$/i.test((value || '')
+      .replace(/(?:arrow[_ -]?(?:forward|right)|chevron[_ -]?right|navigate[_ -]?next)/gi, '')
+      .replace(/[→›»➜➔⟶➡\u200b-\u200d\ufe0f]/g, '').replace(/\s+/g, ' ').trim());
+  }
+  function findNext() {
+    if (chosenNext) {
+      if (!enabled(chosenNext)) throw Error('The chosen Next control is no longer available. Use Choose Next button again.');
+      return chosenNext;
+    }
+    const candidates = [...document.querySelectorAll('button,a,[role=button],input[type=button],input[type=submit]')]
+      .filter(enabled)
+      .filter(el => [el.getAttribute('aria-label'), el.getAttribute('title'), text(el), el.value].some(nextLabel));
+    // A nested span with role=button and its parent are one actionable control.
+    const buttons = candidates.filter(el => !candidates.some(parent => parent !== el && parent.contains(el)));
+    if (buttons.length !== 1) throw Error(`Found ${buttons.length} possible Next buttons. Use Choose Next button in the extension, then click the page’s Next control once.`);
+    return buttons[0];
+  }
   function question(override = '') {
     const inputs = [...document.querySelectorAll('input[type=radio], [role=radio]')].filter(visible);
     const groups = new Map();
@@ -59,7 +79,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 3,
+    version: 4,
     read(override) { const {controls, ...data} = question(override); return data; },
     apply(expected, index, override) {
       const data = question(override);
@@ -70,13 +90,29 @@
       if (!(control.checked || control.getAttribute('aria-checked') === 'true')) throw Error('Selection could not be verified.');
       return 'Answer selected.';
     },
+    chooseNext() {
+      return new Promise((resolve, reject) => {
+        const banner = document.createElement('div');
+        banner.textContent = 'Click the page’s Next button to identify it. This click will not advance. Escape cancels.';
+        banner.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#172033;color:white;padding:14px;border-radius:8px;font:14px system-ui;pointer-events:none';
+        document.documentElement.append(banner);
+        const clean = () => { clearTimeout(timer); banner.remove(); document.removeEventListener('click', click, true); document.removeEventListener('keydown', key, true); };
+        const click = event => {
+          event.preventDefault(); event.stopImmediatePropagation();
+          const target = event.target.closest('button,a,[role=button],input[type=button],input[type=submit],[tabindex]') || event.target;
+          if (!enabled(target)) { clean(); reject(Error('That control is unavailable. Choose an enabled Next button.')); return; }
+          chosenNext = target;
+          clean(); resolve('Next control identified. Open the extension and click Next, or start automatic mode.');
+        };
+        const key = event => { if (event.key === 'Escape') { clean(); reject(Error('Next selection cancelled.')); } };
+        const timer = setTimeout(() => { clean(); reject(Error('Next selection timed out. Choose Next again.')); }, 30000);
+        document.addEventListener('click', click, true);
+        document.addEventListener('keydown', key, true);
+      });
+    },
     next(expected, override) {
       if (question(override).fingerprint !== expected) throw Error('Question changed. Analyze it again.');
-      const buttons = [...document.querySelectorAll('button,a,[role=button],input[type=button],input[type=submit]')]
-        .filter(el => visible(el) && !el.disabled && el.getAttribute('aria-disabled') !== 'true')
-        .filter(el => /^(next|next question|continue)(?:\s*[→›»➜➔⟶➡])?$/i.test(el.getAttribute('aria-label') || text(el) || el.value || ''));
-      if (buttons.length !== 1) throw Error('Could not identify one Next button. Advance manually.');
-      buttons[0].click();
+      findNext().click();
       return 'Next clicked.';
     }
   };

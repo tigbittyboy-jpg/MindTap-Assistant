@@ -5,8 +5,8 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function report(message) { await chrome.storage.local.set({status: message}); return {message}; }
 async function page(tabId, operation, args = []) {
   await chrome.scripting.executeScript({target: {tabId}, files: ['content.js']});
-  const results = await chrome.scripting.executeScript({target: {tabId}, func: (op, params) => {
-    try { return {value: globalThis.mindtapAssistant[op](...params)}; }
+  const results = await chrome.scripting.executeScript({target: {tabId}, func: async (op, params) => {
+    try { return {value: await globalThis.mindtapAssistant[op](...params)}; }
     catch (error) { return {error: error.message}; }
   }, args: [operation, args]});
   if (!results[0]?.result) throw Error('Could not access this page. Embedded frames are not supported yet.');
@@ -70,6 +70,7 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
       await analyze(request.tabId, request.questionOverride || '');
       return {message: (await chrome.storage.local.get('status')).status};
     }
+    if (request.action === 'chooseNext') return report(await page(request.tabId, 'chooseNext'));
     const answer = suggestions.get(request.tabId);
     if (!answer) throw Error('Analyze this question first.');
     if (request.action === 'apply') return report(await page(request.tabId, 'apply', [answer.fingerprint, answer.index, answer.questionOverride]));

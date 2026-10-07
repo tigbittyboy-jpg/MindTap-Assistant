@@ -28,7 +28,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 3);
+  assert.equal(window.mindtapAssistant.version, 4);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -43,4 +43,33 @@ test('preserves superscript units and recognizes an arrow beside Next', () => {
   window.document.querySelector('#next').addEventListener('click', () => clicked = true);
   window.mindtapAssistant.next(result.fingerprint);
   assert.equal(clicked, true);
+});
+
+test('handles descriptive aria labels, icon words, and nested role buttons', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>' +
+    '<button aria-label="Advance exercise" id="next"><span role="button">NEXT arrow_forward</span></button>');
+  let clicked = 0;
+  window.document.querySelector('#next').addEventListener('click', () => clicked++);
+  window.mindtapAssistant.next(window.mindtapAssistant.read().fingerprint);
+  assert.equal(clicked, 1);
+});
+test('ambiguous navigation refuses to click until user chooses a control', async () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>' +
+    '<button>Next</button><button id="exercise-next">Next</button>');
+  const helper = window.mindtapAssistant;
+  const fingerprint = helper.read().fingerprint;
+  assert.throws(() => helper.next(fingerprint), /Found 2/);
+  let clicks = 0;
+  const button = window.document.querySelector('#exercise-next');
+  button.addEventListener('click', () => clicks++);
+  const selection = helper.chooseNext();
+  button.click();
+  await selection;
+  assert.equal(clicks, 0);
+  helper.next(fingerprint);
+  assert.equal(clicks, 1);
+  button.remove();
+  // A removed selected control is never clicked again.
+  assert.throws(() => helper.next(fingerprint), /no longer available/);
+  assert.equal(clicks, 1);
 });
