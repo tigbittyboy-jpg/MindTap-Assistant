@@ -38,20 +38,26 @@ chrome.storage.onChanged.addListener(changes => { if (changes.status) status.tex
 
 const textbookToggle = document.querySelector('#autoSaveTextbook');
 const textbookStatus = document.querySelector('#textbookStatus');
-chrome.storage.local.get(['autoSaveTextbook', 'textbookSaveStatus']).then(settings => {
+const textbookWatcher = document.querySelector('#textbookWatcher');
+chrome.storage.local.get(['autoSaveTextbook', 'textbookSaveStatus', 'textbookWatcherStatus']).then(settings => {
   textbookToggle.checked = settings.autoSaveTextbook !== false;
-  textbookStatus.textContent = settings.textbookSaveStatus || (textbookToggle.checked ? 'Auto-save is on. Open a textbook section.' : 'Textbook auto-save is off.');
+  textbookStatus.textContent = settings.textbookSaveStatus || 'No sections saved yet. 0 MB of 10 MB used.';
+  textbookWatcher.textContent = textbookToggle.checked ? (settings.textbookWatcherStatus || 'Reader not detected yet. Refresh the textbook tab to start auto-save.') : 'Auto-save is off.';
 });
 textbookToggle.addEventListener('change', async () => {
   try {
     await chrome.storage.local.set({autoSaveTextbook: textbookToggle.checked});
-    textbookStatus.textContent = textbookToggle.checked ? 'Auto-save is on. Open a textbook section.' : 'Textbook auto-save is off.';
+    textbookWatcher.textContent = textbookToggle.checked ? 'Auto-save is on. Open a textbook section.' : 'Textbook auto-save is off.';
   } catch (error) { textbookStatus.textContent = error.message; }
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
+  if (changes.textbookWatcherStatus) textbookWatcher.textContent = changes.textbookWatcherStatus.newValue;
   if (changes.textbookSaveStatus) textbookStatus.textContent = changes.textbookSaveStatus.newValue;
-  if (changes.autoSaveTextbook) textbookToggle.checked = changes.autoSaveTextbook.newValue !== false;
+  if (changes.autoSaveTextbook) {
+    textbookToggle.checked = changes.autoSaveTextbook.newValue !== false;
+    if (!textbookToggle.checked) textbookWatcher.textContent = 'Auto-save is off.';
+  }
 });
 
 document.querySelector('#clearTextbook').addEventListener('click', async () => {

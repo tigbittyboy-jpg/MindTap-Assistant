@@ -30,10 +30,10 @@ test('auto-save waits for stable text, skips repeats, and saves a newly opened s
   await app.tick(); assert.equal(app.calls, 1);
   await app.tick(); assert.equal(app.calls, 2);
 });
-test('disabled or hidden readers do not save', async () => {
+test('disabled readers do not save; detached focus does not prevent saving', async () => {
   const app = await harness(false); await app.tick(); assert.equal(app.calls, 0);
-  app.toggle(true); app.hide(); await app.tick(); assert.equal(app.calls, 0);
-  app.toggle(false); await app.tick(); assert.equal(app.calls, 0);
+  app.toggle(true); await new Promise(setImmediate); app.hide(); await app.tick(); assert.equal(app.calls, 1);
+  app.toggle(false); await app.tick(); assert.equal(app.calls, 1);
 });
 test('save errors switch automatic capture off instead of retrying forever', async () => {
   const app = await harness(true, true); await app.tick();

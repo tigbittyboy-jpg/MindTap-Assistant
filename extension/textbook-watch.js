@@ -5,32 +5,43 @@
   let saved = '';
   let busy = false;
   let timer;
+  let lastState = '';
+  async function reportState(message) {
+    if (message === lastState) return;
+    lastState = message;
+    await chrome.storage.local.set({textbookWatcherStatus: message});
+  }
   async function check() {
-    if (!enabled || busy || document.visibilityState === 'hidden') return;
+    if (!enabled || busy) return;
     let signature;
+    let section;
     try {
-      const section = globalThis.mindtapAssistant.textbook();
+      section = globalThis.mindtapAssistant.textbook();
       signature = JSON.stringify(section);
-    } catch { previous = ''; return; }
+    } catch (error) { previous = ''; await reportState('Waiting for textbook: ' + error.message); return; }
     // Require identical text on two polls so partially loaded sections aren't saved.
-    if (signature !== previous) { previous = signature; return; }
+    if (signature !== previous) { previous = signature; await reportState('Reading section: ' + section.title + ' — waiting for text to settle…'); return; }
     if (signature === saved) return;
     busy = true;
+    await reportState('Saving section: ' + section.title + '…');
     try {
       const result = await chrome.runtime.sendMessage({action: 'autoSaveTextbook'});
-      if (!result?.error) saved = signature;
+      if (result && !result.error) { saved = signature; await reportState('Watching for the next section. Current section is saved.'); }
+      else if (!result) { await reportState('Save not acknowledged. Retrying…'); }
       else {
         enabled = false;
         clearInterval(timer);
         await chrome.storage.local.set({autoSaveTextbook: false});
+        await reportState('Auto-save stopped: ' + result.error);
       }
-    } catch { /* A later poll can retry after a transient service-worker restart. */ }
+    } catch (error) { await reportState('Save interrupted; retrying: ' + error.message); }
     finally { busy = false; }
   }
   function configure(value) {
     enabled = value !== false;
     previous = ''; saved = '';
     clearInterval(timer);
+    if (!enabled) void reportState('Auto-save is off.');
     if (enabled) { timer = setInterval(check, 2000); void check(); }
   }
   chrome.storage.local.get('autoSaveTextbook').then(settings => configure(settings.autoSaveTextbook));

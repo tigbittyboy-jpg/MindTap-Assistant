@@ -78,7 +78,7 @@ function saveTextbook(tabId, automatic = false) {
 function clearTextbook() {
   const pending = textbookSaveQueue.catch(() => {}).then(async () => {
     await chrome.storage.local.set({autoSaveTextbook: false, textbookSections: [],
-      textbookSaveStatus: 'Textbook archive cleared. Auto-save is off. 0 MB of 10 MB used.'});
+      textbookWatcherStatus: 'Auto-save is off.', textbookSaveStatus: 'Textbook archive cleared. Auto-save is off. 0 MB of 10 MB used.'});
     return {message: 'Textbook archive cleared. Auto-save is off.'};
   });
   textbookSaveQueue = pending;
@@ -89,7 +89,12 @@ async function saveTextbookSection(tabId, automatic) {
   const section = await page(tabId, 'textbook');
   if (automatic && (await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook === false) return {message: 'Auto-save is off.'};
   const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
-  if (textbookSections.some(item => item.text === section.text)) return {message: `Already saved: ${section.title}`};
+  if (textbookSections.some(item => item.text === section.text)) {
+    const bytes = new TextEncoder().encode(JSON.stringify(textbookSections)).length;
+    const message = `Already saved: ${section.title}\n${textbookSections.length} section(s) · ${(bytes / (1024 * 1024)).toFixed(2)} MB of 10 MB used.`;
+    await chrome.storage.local.set({textbookSaveStatus: message});
+    return {message};
+  }
   const archive = [...textbookSections, section];
   const bytes = new TextEncoder().encode(JSON.stringify(archive)).length;
   if (bytes > 10 * 1024 * 1024) throw Error('Textbook archive has reached its 10 MB limit.');

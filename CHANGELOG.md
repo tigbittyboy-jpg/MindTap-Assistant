@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.5.4
+
+- Added a dedicated live textbook status card showing reading, saving, waiting, and errors.
+- Display section count and storage usage even when revisiting an already saved section.
+- Continue capture while the detached assistant has focus; suggest refreshing when no reader is detected.
+
 ## v0.5.3
 
 - Added Open in window for a persistent detached assistant controlling the original browser window’s active tab.
