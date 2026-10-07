@@ -6,7 +6,7 @@ const source = fs.readFileSync(require('node:path').join(__dirname, '../extensio
 async function harness(enabled = true, error = false) {
   let interval, changed, calls = 0;
   let section = {title: 'Tubing', text: 'Copper tubing is used for refrigerant piping.'};
-  const settings = {autoSaveTextbook: enabled};
+  const settings = enabled === null ? {} : {autoSaveTextbook: enabled};
   const context = vm.createContext({
     document: {visibilityState: 'visible'},
     globalThis: {mindtapAssistant: {textbook: () => section}},
@@ -39,4 +39,9 @@ test('save errors switch automatic capture off instead of retrying forever', asy
   const app = await harness(true, true); await app.tick();
   assert.equal(app.calls, 1); assert.equal(app.settings.autoSaveTextbook, false);
   await app.tick(); assert.equal(app.calls, 1);
+});
+
+test('automatic saving defaults on without a stored preference', async () => {
+  const app = await harness(null); await app.tick();
+  assert.equal(app.calls, 1);
 });

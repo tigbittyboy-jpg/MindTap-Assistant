@@ -59,7 +59,7 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
       return new Promise(resolve => listener({action: 'clearTextbook'}, {id: 'test'}, resolve));
     },
     async save() {
-      return new Promise(resolve => listener({action: 'saveTextbook', tabId: 1}, {id: 'test'}, resolve));
+      return new Promise(resolve => listener({action: 'autoSaveTextbook'}, {id: 'test', tab: {id: 1}, frameId: 0, url: 'https://ebooks.cengage.com/reader/book'}, resolve));
     },
     async start() {
       const reply = await new Promise(resolve => listener({action: 'analyze', auto: true, tabId: 1}, {id: 'test'}, resolve));

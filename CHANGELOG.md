@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.5.3
+
+- Added Open in window for a persistent detached assistant controlling the original browser window’s active tab.
+- Textbook auto-save defaults on; explicit off settings and archive clearing stay respected.
+- Removed manual Save textbook section.
+- Added ng.cengage.com site access for detached question controls.
+
 ## v0.5.2.1
 
 - Added one-click Clear textbook archive; clearing disables auto-save.

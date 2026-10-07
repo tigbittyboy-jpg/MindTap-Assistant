@@ -85,9 +85,9 @@ function clearTextbook() {
   return pending;
 }
 async function saveTextbookSection(tabId, automatic) {
-  if (automatic && !(await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook) return {message: 'Auto-save is off.'};
+  if (automatic && (await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook === false) return {message: 'Auto-save is off.'};
   const section = await page(tabId, 'textbook');
-  if (automatic && !(await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook) return {message: 'Auto-save is off.'};
+  if (automatic && (await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook === false) return {message: 'Auto-save is off.'};
   const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
   if (textbookSections.some(item => item.text === section.text)) return {message: `Already saved: ${section.title}`};
   const archive = [...textbookSections, section];
@@ -196,7 +196,6 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
   (async () => {
     if (request.action === 'stop') { stopped = true; return report('Stop requested.'); }
     if (request.action === 'clearTextbook') return clearTextbook();
-    if (request.action === 'saveTextbook') return saveTextbook(request.tabId);
     if (running) throw Error('Automatic mode is running. Stop it before using manual controls.');
     if (request.action === 'analyze') {
       if (request.auto) {

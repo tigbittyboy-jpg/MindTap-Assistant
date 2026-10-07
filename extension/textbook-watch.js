@@ -28,7 +28,7 @@
     finally { busy = false; }
   }
   function configure(value) {
-    enabled = value === true;
+    enabled = value !== false;
     previous = ''; saved = '';
     clearInterval(timer);
     if (enabled) { timer = setInterval(check, 2000); void check(); }

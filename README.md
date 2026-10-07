@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.5.2.1
+# MindTap Assistant — v0.5.3
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If the answers disagree, it stops so you can review them.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.2.1](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.2.1.zip).
+1. [Download v0.5.3](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.3.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.2.1**. The popup badge shows **v0.5.2.1**.
+Chrome shows version **0.5.3**. The popup badge shows **v0.5.3**.
 
 ## 5. Use it
 
@@ -90,11 +90,17 @@ Two checks take roughly twice as long as one. Thinking mode is off for faster re
 
 The extension does not click a separate **Check Answer** or **Submit** button. Handle those yourself if needed. A page’s Next button may itself submit an answer.
 
+## Keep the assistant open in its own window
+
+Click **Open in window** in the extension. A separate small Chrome window stays open while you click around MindTap. It controls the active tab in the browser window you launched it from; switch tabs in that original window to choose another question or textbook page. Closing the assistant window does not stop quiz automation or textbook auto-save. Use Stop or turn off the auto-save toggle for that.
+
+This is a detached Chrome window, not a separate desktop app. Keep your original browser window open. If you close it, reopen the assistant from the toolbar in another browser window. Chrome may ask you to accept updated site access for ng.cengage.com so the detached controls can read question pages.
+
 ## Use your textbook for reference
 
 1. Open a textbook section in Cengage's eTextbook reader.
-2. Open the extension and enable **Auto-save opened textbook sections**.
-3. Refresh the textbook tab once after installing this update. As you open sections, they are saved automatically after the text settles (usually a few seconds). You can still click **Save textbook section** for a manual save. You do not need to copy text into chat.
+2. Auto-save is on by default. If you previously turned it off or cleared the archive, enable **Auto-save opened textbook sections** again.
+3. Refresh the textbook tab once after installing this update. As you open sections, they are saved automatically after the text settles (usually a few seconds). There is no manual save button. You do not need to copy text into chat.
 4. Return to MindTap and analyze a question normally. The extension searches your saved sections and sends up to three matching excerpts to both answer checks.
 
 The status lists the section titles supplied as references. These are search matches, not proof the answer is correct. If nothing matches, the model answers from its own knowledge. Only opened sections are saved, not the whole book. Auto-save works on a visible textbook tab, skips duplicates, and stays enabled between browser sessions until you turn it off. It turns off on a save error, including a full archive; the textbook status displays the error. The extension requests access to ebooks.cengage.com to watch the reader. The Cengage reader’s same-origin iframe-page frame is supported. Pages stored as images or inside inaccessible frames cannot be captured this way.
