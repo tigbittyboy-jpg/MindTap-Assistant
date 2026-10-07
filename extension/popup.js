@@ -3,6 +3,7 @@ async function command(action) {
   try {
     const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
     const result = await chrome.runtime.sendMessage({action, tabId: tab.id,
+      questionOverride: document.querySelector('#question').value.trim(),
       auto: document.querySelector('#auto').checked,
       limit: Math.max(1, Math.min(25, Number(document.querySelector('#limit').value) || 5))});
     status.textContent = result.error || result.message;
