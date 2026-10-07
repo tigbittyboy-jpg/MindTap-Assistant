@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 7);
+  assert.equal(window.mindtapAssistant.version, 8);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -124,4 +124,22 @@ test('refuses unreadable or duplicate choices without using the shared question 
     const window = fixture('<fieldset><legend>2 + 2?</legend>' + answers + '</fieldset>');
     assert.throws(() => window.mindtapAssistant.read(), /distinct answer labels/);
   }
+});
+
+
+test('reads answer row text beyond repeated select labels', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' +
+    '<div><label><input type="radio" name="q">Select answer</label><span>3</span></div>' +
+    '<div><label><input type="radio" name="q">Select answer</label><span>4</span></div></fieldset>');
+  const data = window.mindtapAssistant.read();
+  assert.equal(data.choices.join(','), 'Select answer 3,Select answer 4');
+  assert.equal(data.prompt, '2 + 2?');
+});
+
+test('counts nested custom radio wrappers as one answer control', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' +
+    '<div role="radio"><span role="radio" aria-label="3"></span></div>' +
+    '<div role="radio"><span role="radio" aria-label="4"></span></div></fieldset>');
+  const data = window.mindtapAssistant.read();
+  assert.equal(data.choices.join(','), '3,4');
 });

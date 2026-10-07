@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 7) return;
+  if (globalThis.mindtapAssistant?.version === 8) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
@@ -38,7 +38,7 @@
   function question() {
     const inputs = [...document.querySelectorAll('input[type=radio], [role=radio]')]
       .filter(el => visible(el) || [...(el.labels || [])].some(visible))
-      .filter(el => !(el.matches('[role=radio]') && el.querySelector('input[type=radio]')));
+      .filter(el => !(el.matches('[role=radio]') && el.querySelector('input[type=radio], [role=radio]')));
     const groups = new Map();
     for (const input of inputs) {
       const key = input.closest('[role=radiogroup],fieldset') || input.name || 'default';
@@ -50,6 +50,7 @@
     const controls = [...groups.values()][0];
     if (controls.length < 2 || controls.length > 12) throw Error('Unsupported answer choices.');
     const answerNodes = new Set();
+    const placeholder = value => !value || /^(?:[a-z][.)]?|select(?: this)?(?: answer| option)?|choose(?: this)?(?: answer| option)?|radio(?: button)?)$/i.test(value.trim());
     const choices = controls.map(input => {
       const ownLabels = [...(input.labels || [])].filter(label =>
         !controls.some(other => other !== input && label.contains(other)));
@@ -66,7 +67,7 @@
         if (controls.some(other => other !== input && parent.contains(other))) break;
         row = parent;
         rowText = text(row);
-        if (rowText) break;
+        if (!placeholder(rowText)) break;
       }
       ownLabels.forEach(label => answerNodes.add(label));
       labelledNodes.forEach(node => answerNodes.add(node));
@@ -74,9 +75,14 @@
       answerNodes.add(input);
       const labels = ownLabels.map(label => text(label)).filter(Boolean).join(' ');
       const labelled = labelledNodes.map(node => text(node)).filter(Boolean).join(' ');
-      return labels || labelled || rowText || input.getAttribute('aria-label') || '';
+      const candidates = [labels, labelled, rowText, input.getAttribute('aria-label') || ''];
+      return candidates.find(value => !placeholder(value)) || candidates.find(Boolean) || '';
     });
-    if (choices.some(choice => !choice) || new Set(choices).size !== choices.length) throw Error('Could not read distinct answer labels.');
+    if (choices.some(choice => !choice) || new Set(choices).size !== choices.length) {
+      const unreadable = choices.filter(choice => !choice).length;
+      const duplicates = choices.filter(Boolean).length - new Set(choices.filter(Boolean)).size;
+      throw Error(`Could not read distinct answer labels (${controls.length} controls, ${unreadable} unreadable, ${duplicates} duplicate labels). Please share a sanitized HTML sample of the answer rows.`);
+    }
     let container = controls[0].closest('fieldset,[role=radiogroup]') || controls[0].parentElement;
     while (container.parentElement && !controls.every(input => container.contains(input))) container = container.parentElement;
     // Prefer explicit question elements; answer controls can be deeply nested.
@@ -109,7 +115,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 7,
+    version: 8,
     read() { const {controls, ...data} = question(); return data; },
     apply(expected, index) {
       const data = question();
