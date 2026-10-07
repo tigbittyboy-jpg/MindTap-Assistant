@@ -29,3 +29,13 @@ Run `python3 -m unittest discover -s tests -v` from the repository root. Provide
 To adapt this to your MindTap layout, provide a sanitized HTML sample of one question and its navigation controls, or screenshots showing those controls. Do not include account details or credentials.
 
 DOM detection regression tests: with Node 20.19+ (or a newer supported release), run `npm ci` and `npm test`. These use jsdom fixtures rather than a live MindTap page. Node and npm are optional developer tools; the extension and backend do not require them to run.
+
+## Gemini connection troubleshooting on macOS
+
+From the repository folder, run `python3 backend/server.py --check-connection`. This checks HTTPS without sending an API key or question. Any HTTP response confirms the connection; it does not validate your API key or model access.
+
+If Python cannot verify the certificate and you installed Python from python.org, open Finder → Applications → Python 3.x and double-click **Install Certificates.command**. Keep certificate verification enabled.
+
+For other Python installations, a trusted CA bundle can be installed with `python3 -m pip install --upgrade certifi` (use an activated virtual environment if your Python requires one). Then run `export SSL_CERT_FILE="$(python3 -c 'import certifi; print(certifi.where())')"` in the same terminal before starting the backend. If pip itself cannot verify certificates, repair that Python installation’s trust configuration first. Networks that inspect HTTPS may need an administrator-provided CA bundle instead; certifi does not include private organizational roots.
+
+After fixing certificates, stop the running backend with Control+C, run the connection check again, then start `python3 backend/server.py` in the terminal where your API key is set. DNS or timeout errors require checking your Internet connection, VPN, proxy, or firewall rather than changing the API key.

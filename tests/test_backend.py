@@ -1,9 +1,12 @@
 import io
 import json
 import os
+import socket
+import ssl
+import urllib.error
 import unittest
 from unittest.mock import patch
-from backend.server import analyze, validate_question
+from backend.server import analyze, validate_question, connection_error, check_connection
 
 
 class BackendTests(unittest.TestCase):
@@ -38,6 +41,21 @@ class BackendTests(unittest.TestCase):
     def test_missing_key(self):
         with self.assertRaisesRegex(ValueError, 'GEMINI_API_KEY'):
             analyze({'prompt': '2+2?', 'choices': ['3', '4']})
+
+
+    def test_connection_errors_are_specific(self):
+        cases = [(ssl.SSLCertVerificationError(1, 'certificate verify failed'), 'Install Certificates.command'),
+                 (socket.gaierror(-2, 'name not known'), 'hostname'),
+                 (TimeoutError(), 'timed out'), (ssl.SSLError(), 'TLS')]
+        for reason, expected in cases:
+            self.assertIn(expected, connection_error(urllib.error.URLError(reason)))
+        self.assertNotIn('secret-placeholder', connection_error(urllib.error.URLError('secret-placeholder')))
+
+    @patch('urllib.request.urlopen', side_effect=urllib.error.HTTPError('https://example.test', 403, 'Forbidden', {}, None))
+    @patch('builtins.print')
+    def test_diagnostic_accepts_http_response_without_api_key(self, output, fetch):
+        self.assertEqual(check_connection(), 0)
+        self.assertIn('sends no API key', output.call_args.args[0])
 
 
 if __name__ == '__main__':

@@ -1,6 +1,10 @@
 """Local Gemini gateway. No third-party Python dependencies."""
 import json
 import os
+import re
+import socket
+import ssl
+import sys
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -60,6 +64,37 @@ def analyze(data):
         raise ValueError('Gemini returned an unsupported or blocked response.') from error
 
 
+def connection_error(error):
+    reason = error.reason if isinstance(error, urllib.error.URLError) else error
+    if isinstance(reason, ssl.SSLCertVerificationError):
+        return ('Python could not verify Gemini’s HTTPS certificate. On macOS with Python from '
+                'python.org, open Applications → Python 3.x → Install Certificates.command, '
+                'then restart the backend. See README for other Python installations.')
+    if isinstance(reason, socket.gaierror):
+        return 'Could not resolve Gemini’s hostname. Check DNS, Internet access, VPN, or proxy settings.'
+    if isinstance(reason, TimeoutError):
+        return 'Connection to Gemini timed out. Check your network, VPN, or proxy and retry.'
+    if isinstance(reason, ssl.SSLError):
+        return 'TLS connection to Gemini failed. Check Python certificates and any HTTPS-inspecting proxy.'
+    tunnel = re.search(r'Tunnel connection failed: (\d{3})', str(reason))
+    if tunnel:
+        return f'Your network proxy rejected the Gemini connection (HTTP {tunnel.group(1)}). Check proxy or firewall access to generativelanguage.googleapis.com.'
+    return f'Could not connect to Gemini ({type(reason).__name__}). Check network, VPN, proxy, or firewall access to generativelanguage.googleapis.com.'
+
+
+def check_connection():
+    # No key or question is sent. Any HTTP response proves the HTTPS connection succeeded.
+    try:
+        with urllib.request.urlopen('https://generativelanguage.googleapis.com/v1beta/models', timeout=15) as response:
+            print(f'Gemini HTTPS connection succeeded (HTTP {response.status}).')
+    except urllib.error.HTTPError as error:
+        print(f'Gemini HTTPS connection succeeded (HTTP {error.code}; this check sends no API key).')
+    except (urllib.error.URLError, TimeoutError, ssl.SSLError) as error:
+        print(connection_error(error))
+        return 1
+    return 0
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_):
         pass  # Do not log question text or credentials.
@@ -113,11 +148,13 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(400, {'error': str(error)})
         except urllib.error.HTTPError as error:
             self.reply(502, {'error': f'Gemini returned HTTP {error.code}. Check API key, model access, and quota.'})
-        except (urllib.error.URLError, TimeoutError):
-            self.reply(502, {'error': 'Could not reach Gemini. Check network access and retry.'})
+        except (urllib.error.URLError, TimeoutError, ssl.SSLError) as error:
+            self.reply(502, {'error': connection_error(error)})
 
 
 if __name__ == '__main__':
+    if '--check-connection' in sys.argv:
+        sys.exit(check_connection())
     server = ThreadingHTTPServer(('127.0.0.1', 8765), Handler)
     print('MindTap backend listening on 127.0.0.1:8765', flush=True)
     try:
