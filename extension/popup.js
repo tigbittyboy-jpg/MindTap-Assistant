@@ -25,15 +25,44 @@ async function command(action) {
   try {
     const tab = await targetTab();
     const result = await chrome.runtime.sendMessage({action, tabId: tab.id,
-      auto: document.querySelector('#auto').checked});
+      auto: false});
     status.textContent = result.error || result.message;
   } catch (error) { status.textContent = error.message; }
 }
-for (const action of ['analyze', 'apply', 'next', 'stop']) {
+for (const action of ['analyze', 'apply', 'next']) {
   document.querySelector(`#${action}`).addEventListener('click', () => command(action));
 }
 chrome.storage.local.get('status').then(result => { if (result.status) status.textContent = result.status; });
 chrome.storage.onChanged.addListener(changes => { if (changes.status) status.textContent = changes.status.newValue; });
+
+const automationToggle = document.querySelector('#auto');
+const automationLabel = document.querySelector('#automationLabel');
+function showAutomation(active) {
+  automationToggle.checked = active === true;
+  automationLabel.textContent = active ? 'On' : 'Off';
+}
+async function refreshAutomation() {
+  const result = await chrome.runtime.sendMessage({action: 'getAutomationState'});
+  showAutomation(result.active);
+}
+void refreshAutomation().catch(error => { status.textContent = error.message; });
+automationToggle.addEventListener('change', async () => {
+  automationToggle.disabled = true;
+  try {
+    const enabled = automationToggle.checked;
+    const request = enabled ? {action: 'analyze', tabId: (await targetTab()).id, auto: true} : {action: 'stop'};
+    const result = await chrome.runtime.sendMessage(request);
+    status.textContent = result.error || result.message;
+    if (result.error) await refreshAutomation();
+    else await refreshAutomation();
+  } catch (error) {
+    showAutomation(false);
+    status.textContent = error.message;
+  } finally { automationToggle.disabled = false; }
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.automationActive) showAutomation(changes.automationActive.newValue);
+});
 
 const textbookToggle = document.querySelector('#autoSaveTextbook');
 const textbookStatus = document.querySelector('#textbookStatus');

@@ -107,6 +107,7 @@ test('last answer opens Review and clicks Finish exactly once without reanalysis
   assert.equal(app.finishes.length, 1);
   assert.equal(app.session.runHistory[1].finishClicked, true);
   assert.match(app.local.status, /completed/);
+  assert.equal(app.local.automationActive, false);
 });
 test('Stop on review prevents Finish', async () => {
   const app = harness({count: 1, review: true, stopAtReview: true}); await app.start();

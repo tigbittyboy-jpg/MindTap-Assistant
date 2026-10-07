@@ -147,6 +147,7 @@ async function automate(tabId) {
   const seen = new Set();
   let answer;
   try {
+    await chrome.storage.local.set({automationActive: true});
     while (!stopped) {
       answer = await analyze(tabId);
       if (seen.has(answer.fingerprint)) throw Error('Automatic mode stopped: this question was already processed.');
@@ -192,7 +193,7 @@ async function automate(tabId) {
     if (answer?.historyId) await recordHistory({id: answer.historyId, error: error.message});
     await report(error.message);
   }
-  finally { running = false; }
+  finally { running = false; await chrome.storage.local.set({automationActive: false}); }
 }
 chrome.runtime.onMessage.addListener((request, sender, reply) => {
   if (sender.id !== chrome.runtime.id) return;
@@ -206,7 +207,8 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
     return true;
   }
   (async () => {
-    if (request.action === 'stop') { stopped = true; return report('Stop requested.'); }
+    if (request.action === 'getAutomationState') return {active: running && !stopped};
+    if (request.action === 'stop') { stopped = true; await chrome.storage.local.set({automationActive: false}); return report('Stop requested.'); }
     if (request.action === 'clearTextbook') return clearTextbook();
     if (running) throw Error('Automatic mode is running. Stop it before using manual controls.');
     if (request.action === 'analyze') {

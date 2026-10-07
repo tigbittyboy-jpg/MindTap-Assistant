@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.5.5.1
+
+- Replaced automatic-mode checkbox and Stop button with a single On/Off switch.
+- On starts immediately; Off requests a stop without needing an active page.
+- Synchronizes state in popup/detached windows and resets Off when automation ends.
+- Analyze question remains a manual action.
+
 ## v0.5.5
 
 - Removed Choose Next button and balanced the question-control grid.

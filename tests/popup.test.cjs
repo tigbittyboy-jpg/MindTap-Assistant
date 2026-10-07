@@ -7,9 +7,9 @@ const source=fs.readFileSync(require('node:path').join(__dirname,'../extension/p
 async function harness(search='') {
  const w=new JSDOM(html,{runScripts:'outside-only',url:'https://extension.test/popup.html'+search}).window;
  const queries=[],messages=[],windows=[],storageListeners=[];
- const settings={};let tab={id:42,windowId:7};
+ let active=false;const settings={};let tab={id:42,windowId:7};
  w.chrome={tabs:{query:async query=>{queries.push(query);return tab?[tab]:[];}},
-  runtime:{getURL:path=>'chrome-extension://test/'+path,sendMessage:async message=>{messages.push(message);return {message:'Done'};}},
+  runtime:{getURL:path=>'chrome-extension://test/'+path,sendMessage:async message=>{if(message.action==='getAutomationState') return {active};messages.push(message);if(message.action==='analyze' && message.auto) active=true;if(message.action==='stop') active=false;return {message:'Done'};}},
   windows:{create:async options=>{windows.push(options);}},
   storage:{local:{get:async()=>settings,set:async values=>Object.assign(settings,values)},onChanged:{addListener:callback=>storageListeners.push(callback)}}};
  let closed=false;w.close=()=>closed=true;
@@ -52,4 +52,19 @@ test('detached window displays live textbook progress and saved archive usage',a
  assert.match(app.w.document.querySelector('#textbookStatus').textContent,/3 sections/);
  app.change({autoSaveTextbook:{newValue:false}});
  assert.equal(app.w.document.querySelector('#textbookWatcher').textContent,'Auto-save is off.');
+});
+
+test('one automation switch starts, stops without a target tab, and syncs completion',async()=>{
+ const app=await harness('?sourceWindow=7');
+ assert.equal(app.w.document.querySelector('#stop'),null);
+ const toggle=app.w.document.querySelector('#auto');
+ toggle.checked=true;toggle.dispatchEvent(new app.w.Event('change'));await new Promise(setImmediate);
+ assert.equal(app.messages[0].action,'analyze');assert.equal(app.messages[0].auto,true);
+ assert.equal(app.messages[0].tabId,42);assert.equal(toggle.checked,true);
+ assert.equal(app.w.document.querySelector('#automationLabel').textContent,'On');
+ app.setTab(null);toggle.checked=false;toggle.dispatchEvent(new app.w.Event('change'));await new Promise(setImmediate);
+ assert.equal(app.messages[1].action,'stop');assert.equal(toggle.checked,false);
+ app.change({automationActive:{newValue:true}});assert.equal(toggle.checked,true);
+ app.change({automationActive:{newValue:false}});assert.equal(toggle.checked,false);
+ assert.equal(app.w.document.querySelector('#automationLabel').textContent,'Off');
 });

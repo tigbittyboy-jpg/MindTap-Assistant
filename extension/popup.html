@@ -23,9 +23,14 @@ button:focus-visible,input:focus-visible{outline:3px solid #90d8ff;outline-offse
 #apply{background:#153e3d;border-color:#38736c;color:#b0f0da}
 #apply:hover{background:#20534d}
 .auto-control{cursor:pointer;text-align:left;font-size:12px;color:#c7d4ee}
-#auto{width:17px;height:17px;margin:0;flex:none;accent-color:#8f9dff;cursor:pointer}
-#stop{background:#402537;border-color:#754157;color:#ffc5d1}
-#stop:hover{background:#593047}
+ .automation-switch{grid-column:1 / -1;justify-content:space-between;font-size:14px}
+.switch-track{position:relative;display:inline-block;width:44px;height:26px;background:#526079;border-radius:20px;transition:background .15s}
+.switch-track::after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:white;border-radius:50%;transition:transform .15s}
+#auto{position:absolute;opacity:0;width:44px;height:26px;margin:0;z-index:1;cursor:pointer}
+#auto:checked + .switch-track{background:#6576f5}
+#auto:checked + .switch-track::after{transform:translateX(18px)}
+#auto:focus-visible + .switch-track{outline:3px solid #90d8ff;outline-offset:3px}
+#auto:disabled + .switch-track{opacity:.5}
 .note{font-size:11px;line-height:1.5;color:var(--muted);margin:13px 0 18px}
 .status-card{border:1px solid var(--line);border-radius:12px;background:#101a2c;padding:12px 14px}
 .status-label{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#94e4cb;font-weight:700;display:flex;align-items:center;gap:7px}
@@ -37,14 +42,13 @@ button:disabled{opacity:.55;cursor:default}
 </style>
 </head>
 <body>
-<header><h1>MindTap Assistant</h1><span class="version">v0.5.5</span></header>
+<header><h1>MindTap Assistant</h1><span class="version">v0.5.5.1</span></header>
 <p class="intro">Open a question and start. Your local Ollama model solves the question twice before suggesting an answer.</p>
 <div class="controls" aria-label="Question controls">
 <button id="analyze">Analyze question</button>
 <button id="apply">Select suggested answer</button>
 <button id="next">Click Next</button>
-<label class="auto-control"><input type="checkbox" id="auto"><span>Automatically select &amp; advance</span></label>
-<button id="stop">Stop automatic mode</button>
+<label class="auto-control automation-switch"><span>Automation · <span id="automationLabel">Off</span></span><span style="position:relative;display:flex"><input type="checkbox" id="auto" role="switch" aria-label="Automatic answer selection and navigation"><span class="switch-track" aria-hidden="true"></span></span></label>
 </div>
 <div class="controls" style="margin-top:10px"><button id="openWindow">Open in window</button><button id="clearTextbook">Clear textbook archive</button></div>
 <label class="auto-control" style="margin-top:10px"><input type="checkbox" id="autoSaveTextbook" style="accent-color:#8f9dff"> Auto-save opened textbook sections</label>

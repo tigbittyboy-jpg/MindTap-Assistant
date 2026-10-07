@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.5.5
+# MindTap Assistant — v0.5.5.1
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If answers disagree, it tries a textbook-based tie-breaker using saved excerpts. It pauses if there is no usable supporting evidence.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.5](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.zip).
+1. [Download v0.5.5.1](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.1.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.5**. The popup badge shows **v0.5.5**.
+Chrome shows version **0.5.5.1**. The popup badge shows **v0.5.5.1**.
 
 ## 5. Use it
 
@@ -78,12 +78,11 @@ Open one multiple-choice question in MindTap, then click the extension icon.
 - **Analyze question:** reads the question and runs two independent answer checks. Each explanation is kept short.
 - **Select suggested answer:** selects the agreed answer after you review it.
 - **Click Next:** advances after verifying that the suggested answer is selected.
-- **Automatically select & advance:** turn this on, then click **Analyze question** to run automatically.
-- **Stop automatic mode:** stops before the next action. An action already happening cannot be undone.
+- **Automation On/Off:** turn On to start answering and advancing immediately. Turn Off to stop before the next action. An action already happening cannot be undone. The switch resets to Off when the run ends or stops on an error.
 
 At the last question, automatic mode clicks **Review**, waits for one available **Finish** button, then clicks it once and stops. Finish may submit the activity. If it cannot identify Finish, it stops for you to finish manually. Manual **Click Next** can open Review, but you must click Finish yourself.
 
-Closing the popup does **not** stop automatic mode. Reopen it to see progress or click Stop.
+Closing the popup does **not** stop automatic mode. Reopen it to see progress or turn Automation Off.
 
 Two checks take roughly twice as long as one. Thinking mode is off for faster responses. If the checks disagree and saved excerpts match, a third pass must select an answer based only on those excerpts and return a supporting quote. The helper verifies that the quote appears in the cited excerpt, then automation continues with that answer. If excerpts are missing or the evidence check fails, it pauses for manual review. A real quote can still be misinterpreted by the model. Matching answers do not guarantee correctness.
 
@@ -91,7 +90,7 @@ The extension does not click a separate **Check Answer** or **Submit** button. H
 
 ## Keep the assistant open in its own window
 
-Click **Open in window** in the extension. A separate small Chrome window stays open while you click around MindTap. It controls the active tab in the browser window you launched it from; switch tabs in that original window to choose another question or textbook page. Closing the assistant window does not stop quiz automation or textbook auto-save. Use Stop or turn off the auto-save toggle for that.
+Click **Open in window** in the extension. A separate small Chrome window stays open while you click around MindTap. It controls the active tab in the browser window you launched it from; switch tabs in that original window to choose another question or textbook page. Closing the assistant window does not stop quiz automation or textbook auto-save. Turn Automation Off or turn off the auto-save toggle for that.
 
 This is a detached Chrome window, not a separate desktop app. Keep your original browser window open. If you close it, reopen the assistant from the toolbar in another browser window. Chrome may ask you to accept updated site access for ng.cengage.com so the detached controls can read question pages.
 
