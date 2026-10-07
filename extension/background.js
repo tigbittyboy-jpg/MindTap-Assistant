@@ -69,6 +69,19 @@ function findReferences(data, sections) {
   }
   return candidates.sort((a, b) => b.score - a.score).slice(0, 3).map(({source, text}) => ({source, text}));
 }
+async function assistanceMode() {
+  return (await chrome.storage.local.get('assistanceMode')).assistanceMode === 'textbook' ? 'textbook' : 'ai';
+}
+async function lookupTextbook(tabId) {
+  suggestions.delete(tabId);
+  const data = await stableQuestion(tabId);
+  const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
+  if (!textbookSections.length) return report('No textbook sections saved yet. Open your textbook sections with auto-save on, then return here and find passages. No AI or backend is needed.');
+  const references = findReferences(data, textbookSections);
+  if (!references.length) return report('No matching saved passages found. Open the relevant textbook section to save it, then try again. Choose your answer manually.');
+  return report('Textbook passages · no AI\nChoose your answer manually. These are search matches, not an answer key.\n\n' +
+    references.map((item, index) => `${index + 1}. ${item.source}\n${item.text}`).join('\n\n'));
+}
 let textbookSaveQueue = Promise.resolve();
 function saveTextbook(tabId, automatic = false) {
   const pending = textbookSaveQueue.catch(() => {}).then(() => saveTextbookSection(tabId, automatic));
@@ -130,6 +143,7 @@ async function analyze(tabId) {
     await recordHistory({id: historyId, error: error.message});
     throw error;
   }
+  if (await assistanceMode() !== 'ai') throw Error('Switched to textbook-only mode; AI suggestion discarded.');
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
   await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n${answer.cached ? "Cached answer reused.\n" : ""}\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
@@ -203,8 +217,19 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
   (async () => {
     if (request.action === 'getAutomationState') return {active: running && !stopped};
     if (request.action === 'stop') { stopped = true; await chrome.storage.local.set({automationActive: false}); return report('Stop requested.'); }
+    if (request.action === 'setAssistanceMode') {
+      if (!['ai', 'textbook'].includes(request.mode)) throw Error('Unknown assistance mode.');
+      stopped = true; suggestions.clear();
+      await chrome.storage.local.set({assistanceMode: request.mode, automationActive: false});
+      return report(request.mode === 'textbook' ? 'Textbook-only mode. Find passages, then choose your answer manually. No AI or backend needed.' : 'AI mode. Analyze a question to get a suggestion.');
+    }
     if (request.action === 'clearTextbook') return clearTextbook();
     if (running) throw Error('Automatic mode is running. Stop it before using manual controls.');
+    const mode = await assistanceMode();
+    if (mode === 'textbook') {
+      if (request.action === 'analyze' && !request.auto) return lookupTextbook(request.tabId);
+      throw Error('Textbook-only mode shows passages. Choose answers and navigate manually, or switch to Local AI.');
+    }
     if (request.action === 'analyze') {
       if (request.auto) {
         void automate(request.tabId);

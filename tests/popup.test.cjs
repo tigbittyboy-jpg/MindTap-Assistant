@@ -4,12 +4,12 @@ const assert=require('node:assert/strict');
 const test=require('node:test');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../extension/popup.html'),'utf8');
 const source=fs.readFileSync(require('node:path').join(__dirname,'../extension/popup.js'),'utf8');
-async function harness(search='') {
+async function harness(search='', initialSettings={}) {
  const w=new JSDOM(html,{runScripts:'outside-only',url:'https://extension.test/popup.html'+search}).window;
  const queries=[],messages=[],windows=[],storageListeners=[];
- let active=false;const settings={};let tab={id:42,windowId:7};
+ let active=false;const settings={...initialSettings};let tab={id:42,windowId:7};
  w.chrome={tabs:{query:async query=>{queries.push(query);return tab?[tab]:[];}},
-  runtime:{getURL:path=>'chrome-extension://test/'+path,sendMessage:async message=>{if(message.action==='getAutomationState') return {active};messages.push(message);if(message.action==='analyze' && message.auto) active=true;if(message.action==='stop') active=false;return {message:'Done'};}},
+  runtime:{getURL:path=>'chrome-extension://test/'+path,sendMessage:async message=>{if(message.action==='getAutomationState') return {active};messages.push(message);if(message.action==='setAssistanceMode'){settings.assistanceMode=message.mode;active=false;}if(message.action==='analyze' && message.auto) active=true;if(message.action==='stop') active=false;return {message:'Done'};}},
   windows:{create:async options=>{windows.push(options);}},
   storage:{local:{get:async()=>settings,set:async values=>Object.assign(settings,values)},onChanged:{addListener:callback=>storageListeners.push(callback)}}};
  let closed=false;w.close=()=>closed=true;
@@ -80,4 +80,26 @@ test('missing detached-window reply shows recovery instructions instead of a Typ
  const toggle=app.w.document.querySelector('#auto');toggle.checked=true;
  toggle.dispatchEvent(new app.w.Event('change'));await new Promise(setImmediate);
  assert.equal(toggle.checked,false);assert.equal(toggle.disabled,false);
+});
+
+test('textbook mode persists in detached UI and disables AI controls', async () => {
+ const app=await harness('?sourceWindow=7',{assistanceMode:'textbook'});
+ assert.equal(app.w.document.querySelector('#assistanceMode').value,'textbook');
+ assert.equal(app.w.document.querySelector('#analyze').textContent,'Find textbook passages');
+ for(const id of ['apply','next','auto']) assert.equal(app.w.document.querySelector('#'+id).disabled,true);
+ assert.match(app.w.document.querySelector('.intro').textContent,/No AI, Ollama, or backend/);
+ await app.click('analyze');
+ assert.equal(app.messages[0].auto,false);
+ app.change({assistanceMode:{newValue:'ai'}});
+ assert.equal(app.w.document.querySelector('#apply').disabled,false);
+ assert.equal(app.w.document.querySelector('#analyze').textContent,'Analyze question');
+});
+test('mode selector saves preference without needing an active question tab', async () => {
+ const app=await harness();app.setTab(null);
+ const select=app.w.document.querySelector('#assistanceMode');
+ select.value='textbook';select.dispatchEvent(new app.w.Event('change'));await new Promise(setImmediate);
+ assert.equal(app.messages[0].action,'setAssistanceMode');
+ assert.equal(app.messages[0].mode,'textbook');
+ assert.equal(app.w.document.querySelector('#auto').disabled,true);
+ assert.equal(select.disabled,false);
 });

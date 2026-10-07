@@ -64,7 +64,7 @@ automationToggle.addEventListener('change', async () => {
   } catch (error) {
     showAutomation(false);
     status.textContent = error.message;
-  } finally { automationToggle.disabled = false; }
+  } finally { automationToggle.disabled = document.querySelector('#assistanceMode').value === 'textbook'; }
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.automationActive) showAutomation(changes.automationActive.newValue);
@@ -99,4 +99,38 @@ document.querySelector('#clearTextbook').addEventListener('click', async () => {
     const result = await sendCommand({action: 'clearTextbook'});
     textbookStatus.textContent = result.error || result.message;
   } catch (error) { textbookStatus.textContent = error.message; }
+});
+
+const modeSelect = document.querySelector('#assistanceMode');
+function showMode(mode) {
+  const textbookOnly = mode === 'textbook';
+  modeSelect.value = textbookOnly ? 'textbook' : 'ai';
+  document.body.classList.toggle('textbook-only', textbookOnly);
+  document.querySelector('#analyze').textContent = textbookOnly ? 'Find textbook passages' : 'Analyze question';
+  for (const id of ['apply', 'next', 'auto']) document.querySelector('#' + id).disabled = textbookOnly;
+  if (textbookOnly) showAutomation(false);
+  document.querySelector('.intro').textContent = textbookOnly
+    ? 'Search your saved textbook sections. No AI, Ollama, or backend needed. Choose your answer on the page.'
+    : detached ? 'Controls the active tab in your original browser window. Keep this window open beside MindTap.'
+    : 'Open a question and start. Your local Ollama model answers using matching saved textbook excerpts in one pass.';
+  document.querySelector('.note').textContent = textbookOnly
+    ? 'Matching passages are references, not an answer key. Select answers and use Next on the MindTap page yourself.'
+    : 'Automatic mode can submit answers and click Review → Finish. AI suggestions may be incorrect. Uses textbook excerpts as context for one AI answer. Stops on unsupported questions or request errors.';
+}
+chrome.storage.local.get('assistanceMode').then(settings => showMode(settings.assistanceMode));
+modeSelect.addEventListener('change', async () => {
+  modeSelect.disabled = true;
+  try {
+    const result = await sendCommand({action: 'setAssistanceMode', mode: modeSelect.value});
+    if (result.error) throw Error(result.error);
+    showMode(modeSelect.value);
+    status.textContent = result.message;
+  } catch (error) {
+    status.textContent = error.message;
+    const settings = await chrome.storage.local.get('assistanceMode');
+    showMode(settings.assistanceMode);
+  } finally { modeSelect.disabled = false; }
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.assistanceMode) showMode(changes.assistanceMode.newValue);
 });

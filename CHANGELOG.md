@@ -1,5 +1,13 @@
 # Release notes
 
+## v0.6.2
+
+- Add a saved Textbook-only mode that finds up to three relevant passages without Ollama or the backend.
+- Show source section titles and passages; leave answer selection and navigation to the reader.
+- Disable AI selection/automation controls in this mode and discard stale AI suggestions when switching.
+- Keep Local AI optional and preserve existing AI mode defaults. Add simple textbook-only setup instructions.
+- Extension-only update; no backend restart required.
+
 ## v0.6.1
 
 - Add a subtle Austin Taylor · @atslo.m4a footer with an Instagram link.

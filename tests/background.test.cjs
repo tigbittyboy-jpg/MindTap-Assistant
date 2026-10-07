@@ -4,9 +4,9 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-function harness({cached = false, count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = [], bookTie = false, badQuote = false} = {}) {
+function harness({switchToTextbookOnFetch = false, assistanceMode = 'ai', cached = false, count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = [], bookTie = false, badQuote = false} = {}) {
   let listener, cursor = 0, selected = -1, transitionalReads = 0;
-  const session = {}, local = {textbookSections}, requests = [], clicks = [], finishes = [];
+  const session = {}, local = {textbookSections, assistanceMode}, requests = [], clicks = [], finishes = [];
   const data = () => ({prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4'], fingerprint: `q${cursor}`});
   const storage = state => ({
     async get(key) { return structuredClone({[key]: state[key]}); },
@@ -49,12 +49,14 @@ function harness({cached = false, count = 30, selectionMismatch = false, answerM
     setTimeout: fn => queueMicrotask(fn), AbortSignal, Date, TextEncoder,
     fetch: async (_url, request) => {
       const body = JSON.parse(request.body); requests.push(body);
+      if (switchToTextbookOnFetch) await new Promise(resolve => listener({action: 'setAssistanceMode', mode: 'textbook'}, {id: 'test'}, resolve));
       if (disagreement) return {ok: false, json: async () => ({error: 'Textbook reference could not support an answer. Review manually.'})};
       return {ok: true, json: async () => ({cached, textbook_resolved: bookTie, evidence_source_index: 0, evidence_source: 'Numbers', evidence_quote: badQuote ? 'Fabricated quote that is absent.' : 'Question number choices: 2 plus 2 equals 4.', reference_count: body.references.length, analysis_mode: unchecked ? undefined : 'single_pass', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
   vm.runInContext(source, context);
   return {session, local, requests, clicks, finishes,
+    async command(request) { return new Promise(resolve => listener(request, {id: 'test'}, resolve)); },
     async detachedState() {
       return new Promise(resolve => listener({action: 'getAutomationState'}, {id: 'test', tab: {id: 99}, url: 'chrome-extension://test/popup.html?sourceWindow=7'}, resolve));
     },
@@ -197,4 +199,48 @@ test('cached answers keep selection verification and record reuse', async () => 
   assert.equal(app.clicks.length, 1);
   assert.equal(app.session.runHistory[0].cached, true);
   assert.equal(app.session.runHistory[0].selectionVerified, true);
+});
+
+test('textbook-only lookup returns passages without model requests or selection', async () => {
+  const app = harness({assistanceMode: 'textbook', textbookSections: [{title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}]});
+  const reply = await app.command({action: 'analyze', tabId: 1});
+  assert.match(reply.message, /Textbook passages · no AI/);
+  assert.match(reply.message, /Numbers/);
+  assert.match(reply.message, /2 plus 2 equals 4/);
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.clicks.length, 0);
+  for (const request of [{action: 'analyze', auto: true}, {action: 'apply'}, {action: 'next'}]) {
+    assert.match((await app.command({...request, tabId: 1})).error, /Choose answers and navigate manually/);
+  }
+  assert.equal(app.requests.length, 0);
+});
+test('empty or unrelated textbook archives provide help without requesting AI', async () => {
+  for (const textbookSections of [[], [{title: 'Oranges', text: 'Fresh fruit grows on trees.'}]]) {
+    const app = harness({assistanceMode: 'textbook', textbookSections});
+    const reply = await app.command({action: 'analyze', tabId: 1});
+    assert.match(reply.message, /No textbook sections|No matching saved passages/);
+    assert.equal(app.requests.length, 0);
+  }
+});
+test('mode changes are saved and invalidate previous AI suggestions', async () => {
+  const app = harness();
+  await app.command({action: 'analyze', tabId: 1});
+  await app.command({action: 'setAssistanceMode', mode: 'textbook'});
+  assert.equal(app.local.assistanceMode, 'textbook');
+  assert.equal(app.local.automationActive, false);
+  await app.command({action: 'setAssistanceMode', mode: 'ai'});
+  assert.match((await app.command({action: 'apply', tabId: 1})).error, /Analyze this question first/);
+  assert.equal(app.requests.length, 1);
+  assert.match((await app.command({action: 'setAssistanceMode', mode: 'unknown'})).error, /Unknown assistance mode/);
+  assert.equal(app.local.assistanceMode, 'ai');
+});
+
+test('switching to textbook mode during AI generation stops automatic selection', async () => {
+  const app = harness({switchToTextbookOnFetch: true});
+  await app.start();
+  assert.equal(app.requests.length, 1);
+  assert.equal(app.local.assistanceMode, 'textbook');
+  assert.equal(app.local.automationActive, false);
+  assert.equal(app.clicks.length, 0);
+  assert.match(app.local.status, /AI suggestion discarded/);
 });

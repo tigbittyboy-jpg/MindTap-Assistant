@@ -36,6 +36,10 @@ button:focus-visible,input:focus-visible{outline:3px solid #90d8ff;outline-offse
 .status-label{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#94e4cb;font-weight:700;display:flex;align-items:center;gap:7px}
 .status-label::before{content:"";width:6px;height:6px;border-radius:50%;background:#94e4cb}
 #status{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 system-ui,sans-serif;margin:7px 0 0;max-height:180px;overflow-y:auto;color:#dbe5fa}
+.mode-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;color:var(--muted);font-size:12px}
+.mode-row select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px;font:inherit;max-width:235px}
+.mode-row select:focus-visible{outline:3px solid #90d8ff;outline-offset:3px}
+.textbook-only #status{max-height:360px}
 .credit{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:11px;color:var(--muted)}
 .credit a{color:#94e4cb;text-decoration:none}
 .credit a:hover{text-decoration:underline}
@@ -46,8 +50,9 @@ button:disabled{opacity:.55;cursor:default}
 </style>
 </head>
 <body>
-<header><h1>MindTap Assistant</h1><span class="version">v0.6.1</span></header>
+<header><h1>MindTap Assistant</h1><span class="version">v0.6.2</span></header>
 <p class="intro">Open a question and start. Your local Ollama model answers using matching saved textbook excerpts in one pass.</p>
+<label class="mode-row" for="assistanceMode">Mode<select id="assistanceMode"><option value="ai">Local AI</option><option value="textbook">Textbook only · no AI needed</option></select></label>
 <div class="controls" aria-label="Question controls">
 <button id="analyze">Analyze question</button>
 <button id="apply">Select suggested answer</button>
