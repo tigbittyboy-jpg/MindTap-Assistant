@@ -1,4 +1,4 @@
-# MindTap Study Assistant
+# MindTap Study Assistant v.0.3.4
 
 A Chrome Manifest V3 extension with a local Python gateway to local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances without a question-count limit, regardless of model-reported confidence. It continues until stopped or a navigation or request error occurs. Confidence is an AI estimate, not a guarantee of correctness.
 
@@ -51,8 +51,15 @@ If Next detection fails, turn off automatic mode, click **Choose Next button** i
 
 ## Diagnosing answer accuracy
 
-Version 0.3.0 reads visible text directly, excludes answer elements structurally instead of deleting matching words from the prompt, filters hidden explanations, and deduplicates radio wrappers. The model receives explicitly indexed choices and must return matching answer text and index. Selection is rechecked against the current page before navigation, and automatic mode waits for a stable next question. These checks catch extraction/mapping errors; they do not prove factual accuracy. Automated tests use DOM fixtures and simulated model responses, not a scored subject-matter benchmark.
+The extension reads visible text directly, excludes answer elements structurally instead of deleting matching words from the prompt, filters hidden explanations, and deduplicates radio wrappers. The model receives explicitly indexed choices and must return matching answer text and index. Selection is rechecked against the current page before navigation, and automatic mode waits for a stable next question. These checks catch extraction/mapping errors; they do not prove factual accuracy. Automated tests use DOM fixtures and simulated model responses, not a scored subject-matter benchmark.
 
 **Export recent run** downloads a JSON file with the last 100 captured questions, choices, predictions, explanations, provider/model metadata, and selection checks. History stays in Chrome extension session storage, is cleared when the browser session ends or the extension is removed/updated, and is not uploaded by the export. The 100-entry retention limit does not cap automatic mode. No credentials or account URLs are recorded. The file does not contain MindTap’s answer key or grades. Review the content before sharing; one or two missed questions with known correct answers can help distinguish model mistakes from page-extraction problems.
 
-Qwen3’s thinking mode is optional: set `OLLAMA_THINK=true` before restarting the backend to try it, or `OLLAMA_THINK=false` for the default faster mode. Thinking can slow requests or cause timeouts and is not a guarantee of improved accuracy. The prompts now emphasize negations, units, exponents, rounding, and a concise calculation where relevant. Update both the extension and backend to use all 0.3.0 changes. Previously removed confidence and question-count cutoffs remain removed.
+Qwen3’s thinking mode is optional: set `OLLAMA_THINK=true` before restarting the backend to try it, or `OLLAMA_THINK=false` for the default faster mode. Thinking can slow requests or cause timeouts and is not a guarantee of improved accuracy. The prompts now emphasize negations, units, exponents, rounding, and a concise calculation where relevant. Update both the extension and backend to use the latest changes. Previously removed confidence and question-count cutoffs remain removed.
+
+## v.0.3.4 patch notes
+
+- Uses local Ollama exclusively.
+- Reads Learnosity displayed answer text marked `aria-hidden` without duplicate screen-reader text.
+- Handles empty labels, repeated selection labels, and nested custom radio controls.
+- Reports unreadable and duplicate answer-label counts for troubleshooting.
