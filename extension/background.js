@@ -108,18 +108,18 @@ async function analyze(tabId) {
   const data = await stableQuestion(tabId);
   const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
   const references = findReferences(data, textbookSections);
-  await report(`Analyzing and independently double-checking…\n${references.length} textbook excerpt(s) found.`);
+  await report(`Analyzing with textbook references…\n${references.length} textbook excerpt(s) found.`);
   const historyId = crypto.randomUUID();
   await recordHistory({id: historyId, timestamp: new Date().toISOString(), prompt: data.prompt, choices: data.choices});
   let answer;
   try {
     const response = await fetch('http://127.0.0.1:8765/analyze', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt: data.prompt, choices: data.choices, references}), signal: AbortSignal.timeout(285000)
+      body: JSON.stringify({prompt: data.prompt, choices: data.choices, references}), signal: AbortSignal.timeout(100000)
     });
     answer = await response.json();
     if (!response.ok) throw Error(answer.error || 'Backend request failed.');
-    if (answer.double_checked !== true || typeof answer.check_explanation !== 'string' || !answer.check_explanation.trim()) throw Error('Double check missing. Restart the v0.4 backend before selecting answers.');
+    if (answer.analysis_mode !== 'single_pass') throw Error('Restart the v0.5.5.3 backend to use single-pass answers.');
     if (references.length && answer.reference_count !== references.length) throw Error('Textbook context was not accepted. Restart the v0.5 backend.');
     if (!Number.isInteger(answer.index) || answer.index < 0 || answer.index >= data.choices.length ||
         !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
@@ -128,18 +128,18 @@ async function analyze(tabId) {
       const source = references[answer.evidence_source_index];
       if (!source || source.source !== answer.evidence_source || typeof answer.evidence_quote !== 'string' ||
           answer.evidence_quote.trim().length < 20 || !source.text.replace(/\s+/g, ' ').includes(answer.evidence_quote.replace(/\s+/g, ' ').trim())) {
-        throw Error('Textbook tie-breaker evidence could not be verified. Review manually.');
+        throw Error('Textbook reference evidence could not be verified. Review manually.');
       }
     }
     await recordHistory({id: historyId, suggestedIndex: answer.index, suggestedText: data.choices[answer.index], confidence: answer.confidence,
-      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, doubleChecked: answer.double_checked, checkExplanation: answer.check_explanation, textbookResolved: answer.textbook_resolved, evidenceQuote: answer.evidence_quote});
+      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, textbookResolved: answer.textbook_resolved, evidenceQuote: answer.evidence_quote});
   } catch (error) {
     await recordHistory({id: historyId, error: error.message});
     throw error;
   }
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\n${answer.textbook_resolved ? "Textbook tie-breaker: " + answer.evidence_source + "\n“" + answer.evidence_quote + "”" : "Independent check agreed: " + answer.check_explanation}\n\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
+  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\n${answer.textbook_resolved ? "Textbook reference: " + answer.evidence_source + "\n“" + answer.evidence_quote + "”" : ""}\n\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
   return suggestion;
 }
 async function automate(tabId) {

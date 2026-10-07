@@ -49,8 +49,8 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
     setTimeout: fn => queueMicrotask(fn), AbortSignal, Date, TextEncoder,
     fetch: async (_url, request) => {
       const body = JSON.parse(request.body); requests.push(body);
-      if (disagreement) return {ok: false, json: async () => ({error: 'Double check disagreed. Review manually.'})};
-      return {ok: true, json: async () => ({textbook_resolved: bookTie, evidence_source_index: 0, evidence_source: 'Numbers', evidence_quote: badQuote ? 'Fabricated quote that is absent.' : 'Question number choices: 2 plus 2 equals 4.', reference_count: body.references.length, double_checked: !unchecked, check_explanation: 'Four is the only matching result.', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
+      if (disagreement) return {ok: false, json: async () => ({error: 'Textbook reference could not support an answer. Review manually.'})};
+      return {ok: true, json: async () => ({textbook_resolved: bookTie, evidence_source_index: 0, evidence_source: 'Numbers', evidence_quote: badQuote ? 'Fabricated quote that is absent.' : 'Question number choices: 2 plus 2 equals 4.', reference_count: body.references.length, analysis_mode: unchecked ? undefined : 'single_pass', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
   vm.runInContext(source, context);
@@ -95,16 +95,16 @@ test('answer text/index mismatch is rejected before selection or advancement', a
 });
 
 
-test('double-check disagreement prevents selection and advancement', async () => {
+test('unsupported textbook answer prevents selection and advancement', async () => {
   const app = harness({disagreement: true}); await app.start();
   assert.equal(app.clicks.length, 0);
-  assert.match(app.local.status, /Double check disagreed/);
+  assert.match(app.local.status, /could not support/);
   assert.equal(app.session.runHistory[0].selectionVerified, undefined);
 });
-test('older unchecked backend cannot trigger automatic selection', async () => {
+test('older double-check backend cannot trigger automatic selection', async () => {
   const app = harness({unchecked: true}); await app.start();
   assert.equal(app.clicks.length, 0);
-  assert.match(app.local.status, /Double check missing/);
+  assert.match(app.local.status, /Restart the v0.5.5.3 backend/);
 });
 
 test('last answer opens Review and clicks Finish exactly once without reanalysis', async () => {
@@ -171,14 +171,14 @@ test('clearing runs after in-flight saves so the cleared archive stays empty', a
   assert.equal(app.local.autoSaveTextbook, false);
 });
 
-test('book-resolved disagreement continues automatic selection and advancement', async () => {
+test('textbook-supported answer continues automatic selection and advancement', async () => {
   const app = harness({count: 1, bookTie: true, textbookSections: [{title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}]});
   await app.start();
   assert.equal(app.clicks.length, 1);
   assert.equal(app.session.runHistory[0].textbookResolved, true);
   assert.equal(app.session.runHistory[0].selectionVerified, true);
 });
-test('invalid tie-breaker evidence stops before automatic selection', async () => {
+test('invalid textbook evidence stops before automatic selection', async () => {
   const app = harness({count: 1, bookTie: true, badQuote: true, textbookSections: [{title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}]});
   await app.start();
   assert.equal(app.clicks.length, 0);

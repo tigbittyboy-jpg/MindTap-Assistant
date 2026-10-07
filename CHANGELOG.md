@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.5.5.3
+
+- Remove independent double checking: one model request per question.
+- Keep textbook references and verify supporting quotes when excerpts are supplied.
+- Reduce textbook capture polling from 2 seconds to 750 ms while retaining the two-poll stability check.
+- Update both backend and extension; restart the backend.
+
 ## v0.5.5.2
 
 - Accept control messages from the detached assistant extension page.

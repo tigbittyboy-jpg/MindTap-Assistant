@@ -42,7 +42,7 @@
     previous = ''; saved = '';
     clearInterval(timer);
     if (!enabled) void reportState('Auto-save is off.');
-    if (enabled) { timer = setInterval(check, 2000); void check(); }
+    if (enabled) { timer = setInterval(check, 750); void check(); }
   }
   chrome.storage.local.get('autoSaveTextbook').then(settings => configure(settings.autoSaveTextbook));
   chrome.storage.onChanged.addListener((changes, area) => {

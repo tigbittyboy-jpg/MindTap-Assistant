@@ -1,8 +1,8 @@
-# MindTap Assistant — v0.5.5.2
+# MindTap Assistant — v0.5.5.3
 
-A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If answers disagree, it tries a textbook-based tie-breaker using saved excerpts. It pauses if there is no usable supporting evidence.
+A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It answers in one pass, using matching saved textbook excerpts first. When excerpts are supplied, it must return a supporting quote; otherwise it pauses. Without matching excerpts, it uses model knowledge.
 
-The AI can still be wrong, even when both checks agree. Use it where study assistance is allowed.
+The AI can still be wrong, even with textbook references. Use it where study assistance is allowed.
 
 ## What you need
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.5.2](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.2.zip).
+1. [Download v0.5.5.3](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.3.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,13 +69,13 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.5.2**. The popup badge shows **v0.5.5.2**.
+Chrome shows version **0.5.5.3**. The popup badge shows **v0.5.5.3**.
 
 ## 5. Use it
 
 Open one multiple-choice question in MindTap, then click the extension icon.
 
-- **Analyze question:** reads the question and runs two independent answer checks. Each explanation is kept short.
+- **Analyze question:** reads the question and generates one answer with a short explanation.
 - **Select suggested answer:** selects the agreed answer after you review it.
 - **Click Next:** advances after verifying that the suggested answer is selected.
 - **Automation On/Off:** turn On to start answering and advancing immediately. Turn Off to stop before the next action. An action already happening cannot be undone. The switch resets to Off when the run ends or stops on an error.
@@ -84,7 +84,7 @@ At the last question, automatic mode clicks **Review**, waits for one available 
 
 Closing the popup does **not** stop automatic mode. Reopen it to see progress or turn Automation Off.
 
-Two checks take roughly twice as long as one. Thinking mode is off for faster responses. If the checks disagree and saved excerpts match, a third pass must select an answer based only on those excerpts and return a supporting quote. The helper verifies that the quote appears in the cited excerpt, then automation continues with that answer. If excerpts are missing or the evidence check fails, it pauses for manual review. A real quote can still be misinterpreted by the model. Matching answers do not guarantee correctness.
+One model pass is faster than the previous double check. Thinking mode stays off. Textbook answers must include a quote that appears in the supplied excerpt. A real quote can still be misinterpreted, so this does not guarantee correctness.
 
 The extension does not click a separate **Check Answer** or **Submit** button. Handle those yourself if needed. A page’s Next button may itself submit an answer.
 
@@ -98,8 +98,8 @@ This is a detached Chrome window, not a separate desktop app. Keep your original
 
 1. Open a textbook section in Cengage's eTextbook reader.
 2. Auto-save is on by default. If you previously turned it off or cleared the archive, enable **Auto-save opened textbook sections** again.
-3. Refresh the textbook tab once after installing this update. As you open sections, they are saved automatically after the text settles (usually a few seconds). There is no manual save button. You do not need to copy text into chat.
-4. Return to MindTap and analyze a question normally. The extension searches your saved sections and sends up to three matching excerpts to both answer checks.
+3. Refresh the textbook tab once after installing this update. As you open sections, they are saved automatically after the text settles (usually about 0.75–1.5 seconds after the text loads). There is no manual save button. You do not need to copy text into chat.
+4. Return to MindTap and analyze a question normally. The extension searches your saved sections and sends up to three matching excerpts to the single answer pass.
 
 The **Textbook auto-save** card shows Reading, Saving, Waiting, or Stopped, plus the last saved section and archive usage. If no reader has been detected, refresh the textbook tab. Background Chrome tabs can be throttled, so saving may take longer.
 
@@ -146,7 +146,7 @@ export OLLAMA_THINK=false
 python3 backend/server.py
 ```
 
-Close memory-heavy apps. The first question can be slower while the model loads. Each check can wait up to 90 seconds; the extension allows up to 285 seconds for two checks and an optional tie-breaker.
+Close memory-heavy apps. The first question can be slower while the model loads. The single model request can wait up to 90 seconds; the extension allows 100 seconds total.
 
 ### It cannot find Next or Review
 

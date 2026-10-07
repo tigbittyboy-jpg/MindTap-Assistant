@@ -42,8 +42,8 @@ button:disabled{opacity:.55;cursor:default}
 </style>
 </head>
 <body>
-<header><h1>MindTap Assistant</h1><span class="version">v0.5.5.2</span></header>
-<p class="intro">Open a question and start. Your local Ollama model solves the question twice before suggesting an answer.</p>
+<header><h1>MindTap Assistant</h1><span class="version">v0.5.5.3</span></header>
+<p class="intro">Open a question and start. Your local Ollama model answers using matching saved textbook excerpts in one pass.</p>
 <div class="controls" aria-label="Question controls">
 <button id="analyze">Analyze question</button>
 <button id="apply">Select suggested answer</button>
@@ -53,7 +53,7 @@ button:disabled{opacity:.55;cursor:default}
 <div class="controls" style="margin-top:10px"><button id="openWindow">Open in window</button><button id="clearTextbook">Clear textbook archive</button></div>
 <label class="auto-control" style="margin-top:10px"><input type="checkbox" id="autoSaveTextbook" style="accent-color:#8f9dff"> Auto-save opened textbook sections</label>
 <section class="status-card" style="margin-top:10px" aria-label="Textbook archive"><div class="status-label">Textbook auto-save</div><p id="textbookWatcher" style="font-size:12px;margin:8px 0;color:#b0f0da" role="status">Checking reader…</p><p id="textbookStatus" style="white-space:pre-wrap;font-size:12px;margin:8px 0;overflow-wrap:anywhere" role="status">No sections saved yet.</p></section>
-<p class="note">Automatic mode can submit answers and click Review → Finish. AI suggestions may be incorrect. Disagreements use a textbook tie-breaker. Stops if evidence is unavailable or a request fails.</p>
+<p class="note">Automatic mode can submit answers and click Review → Finish. AI suggestions may be incorrect. Textbook answers include a supporting quote. Stops if supplied excerpts cannot support an answer or a request fails.</p>
 <section class="status-card" aria-label="Assistant status"><div class="status-label">Status</div><pre id="status" role="status" aria-live="polite">Ready.</pre></section>
 <script src="popup.js"></script>
 </body>

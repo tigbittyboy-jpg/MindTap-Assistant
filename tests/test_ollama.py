@@ -21,13 +21,11 @@ class OllamaIntegrationTests(unittest.TestCase):
                 payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                 owner.payloads.append((self.path, payload, self.headers.get('x-goog-api-key')))
                 answer = {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': '2 + 2 = 4.'}
-                if owner.disagreement and len(owner.payloads) == 2:
-                    answer.update(index=0, answer_text='3', explanation='Different independent result.')
                 if owner.invalid:
                     answer['index'] = 99
                 if owner.mismatch:
                     answer['answer_text'] = '3'
-                if len(owner.payloads) == 3:
+                if 'supported' in payload['format']['required']:
                     answer.update(supported=owner.supported, source_index=0, evidence_quote=owner.quote)
                 self.respond({'message': {'content': json.dumps(answer)}})
             def respond(self, data):
@@ -60,13 +58,9 @@ class OllamaIntegrationTests(unittest.TestCase):
         with self.client.open(request, timeout=5) as response:
             result = json.load(response)
             self.assertEqual(result['index'], 1)
-            self.assertTrue(result['double_checked'])
-            self.assertEqual(result['check_explanation'], '2 + 2 = 4.')
+            self.assertEqual(result['analysis_mode'], 'single_pass')
             self.assertEqual(response.headers['Access-Control-Allow-Origin'], 'chrome-extension://test')
-        self.assertEqual(len(self.payloads), 2)
-        self.assertEqual(self.payloads[0][1]['messages'][1], self.payloads[1][1]['messages'][1])
-        self.assertNotEqual(self.payloads[0][1]['messages'][0], self.payloads[1][1]['messages'][0])
-        self.assertEqual(len(self.payloads[1][1]['messages']), 2)
+        self.assertEqual(len(self.payloads), 1)
         path, payload, key = self.payloads[0]
         self.assertEqual(path, '/api/chat')
         self.assertEqual(payload['model'], 'qwen3:8b')
@@ -107,55 +101,33 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertTrue(payload['think'])
         self.assertNotIn('/no_think', payload['messages'][0]['content'])
 
-    def test_disagreement_returns_http_error_with_both_answers(self):
-        self.disagreement = True
-        request = urllib.request.Request(f'http://127.0.0.1:{self.gateway.server_port}/analyze',
-            data=json.dumps({'prompt': '2+2?', 'choices': ['3', '4']}).encode(),
-            headers={'Content-Type': 'application/json'})
-        with self.assertRaises(urllib.error.HTTPError) as caught:
-            self.client.open(request, timeout=5)
-        self.assertEqual(caught.exception.code, 400)
-        message = json.load(caught.exception)['error']
-        self.assertIn('Double check disagreed', message)
-        self.assertIn('First pass: 4', message)
-        self.assertIn('Second pass: 3', message)
-        self.assertEqual(len(self.payloads), 2)
-
-    def test_both_checks_receive_same_reference_excerpts(self):
-        references = [{'source': 'Soldering', 'text': 'Use heat in the metal to melt solder.'}]
-        server.analyze({'prompt': '2+2?', 'choices': ['3', '4'], 'references': references})
-        self.assertEqual(len(self.payloads), 2)
-        for _, payload, _ in self.payloads:
-            question = json.loads(payload['messages'][1]['content'])
-            self.assertEqual(question['textbook_excerpts'], references)
-
     def test_oversized_reference_is_rejected_before_inference(self):
         with self.assertRaisesRegex(ValueError, 'Invalid textbook excerpt'):
             server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
                             'references': [{'source': 'Book', 'text': 'x' * 901}]})
         self.assertEqual(self.payloads, [])
 
-    def test_textbook_tie_breaker_resolves_disagreement_with_real_quote(self):
+    def test_single_textbook_pass_returns_real_quote(self):
         self.disagreement = True
         result = server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
                                  'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
-        self.assertEqual(len(self.payloads), 3)
+        self.assertEqual(len(self.payloads), 1)
         self.assertTrue(result['textbook_resolved'])
         self.assertEqual(result['index'], 1)
         self.assertEqual(result['evidence_quote'], 'Two plus two equals four.')
-        payload = self.payloads[2][1]
+        payload = self.payloads[0][1]
         self.assertIn('using ONLY', payload['messages'][0]['content'])
         self.assertEqual(len(payload['messages']), 2)
         self.assertIn('supported', payload['format']['required'])
 
-    def test_textbook_tie_breaker_rejects_fabricated_quote(self):
+    def test_textbook_reference_rejects_fabricated_quote(self):
         self.disagreement = True
         self.quote = 'Fabricated evidence not in the textbook.'
         with self.assertRaisesRegex(ValueError, 'not present'):
             server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
                             'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
 
-    def test_textbook_tie_breaker_declines_unsupported_answer(self):
+    def test_textbook_reference_declines_unsupported_answer(self):
         self.disagreement = True
         self.supported = False
         with self.assertRaisesRegex(ValueError, 'could not support'):

@@ -60,24 +60,13 @@ class BackendTests(unittest.TestCase):
         self.assertIn('port 11434', output.call_args.args[0])
 
     @patch('backend.server.analyze_ollama')
-    def test_failed_second_check_does_not_return_first_answer(self, solve):
-        solve.side_effect = [
-            {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': 'First answer'},
-            TimeoutError('second pass timed out')]
-        with self.assertRaises(TimeoutError):
-            analyze({'prompt': '2+2?', 'choices': ['3', '4']})
-        self.assertEqual(solve.call_count, 2)
-
-    @patch('backend.server.analyze_ollama')
-    def test_agreement_uses_lower_confidence(self, solve):
-        first = {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': 'First answer'}
-        second = {**first, 'confidence': .6, 'explanation': 'Independent answer'}
-        solve.side_effect = [first, second]
+    def test_single_pass_preserves_answer_without_second_request(self, solve):
+        solve.return_value = {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': '2+2=4'}
         answer = analyze({'prompt': '2+2?', 'choices': ['3', '4']})
-        self.assertEqual(answer['confidence'], .6)
-        self.assertEqual(answer['explanation'], 'First answer')
-        self.assertEqual(answer['check_explanation'], 'Independent answer')
-        self.assertTrue(answer['double_checked'])
+        solve.assert_called_once()
+        self.assertEqual(answer['confidence'], .95)
+        self.assertEqual(answer['analysis_mode'], 'single_pass')
+        self.assertFalse(answer['textbook_resolved'])
 
 
 if __name__ == '__main__':
