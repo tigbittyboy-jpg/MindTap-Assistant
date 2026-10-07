@@ -1,4 +1,4 @@
-# MindTap Study Assistant v.0.3.6
+# MindTap Study Assistant v.0.3.7
 
 A Chrome Manifest V3 extension with a local Python gateway to local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances without a question-count limit, regardless of model-reported confidence. It continues until stopped or a navigation or request error occurs. Confidence is an AI estimate, not a guarantee of correctness.
 
@@ -73,3 +73,8 @@ Qwen3’s thinking mode is optional: set `OLLAMA_THINK=true` before restarting t
 - Arranged actions and automatic mode in a symmetrical two-column grid.
 - Removed the Export recent run button and its download handler.
 - Added a visible version badge, keyboard focus indicators, and a compact status panel.
+
+## v.0.3.7 patch notes
+
+- Added a navy and indigo book icon with a mint sparkle.
+- Configured 16px/32px toolbar icons and 48px/128px extension listing icons.
