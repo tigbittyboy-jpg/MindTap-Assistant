@@ -1,7 +1,14 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 2) return;
+  if (globalThis.mindtapAssistant?.version === 3) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
-  const text = el => (el?.innerText || el?.textContent || '').replace(/\s+/g, ' ').trim();
+  const text = el => {
+    if (!el) return '';
+    const copy = el.cloneNode(true);
+    copy.querySelectorAll('script,style,svg,[aria-hidden="true"],.material-icons,mat-icon').forEach(node => node.remove());
+    copy.querySelectorAll('sup').forEach(node => node.replaceWith(`^(${node.textContent})`));
+    copy.querySelectorAll('sub').forEach(node => node.replaceWith(`_(${node.textContent})`));
+    return (copy.innerText || copy.textContent || '').replace(/\s+/g, ' ').trim();
+  };
   function question(override = '') {
     const inputs = [...document.querySelectorAll('input[type=radio], [role=radio]')].filter(visible);
     const groups = new Map();
@@ -52,7 +59,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 2,
+    version: 3,
     read(override) { const {controls, ...data} = question(override); return data; },
     apply(expected, index, override) {
       const data = question(override);
@@ -67,7 +74,7 @@
       if (question(override).fingerprint !== expected) throw Error('Question changed. Analyze it again.');
       const buttons = [...document.querySelectorAll('button,a,[role=button],input[type=button],input[type=submit]')]
         .filter(el => visible(el) && !el.disabled && el.getAttribute('aria-disabled') !== 'true')
-        .filter(el => /^(next|next question|continue)$/i.test(text(el) || el.value || el.getAttribute('aria-label') || ''));
+        .filter(el => /^(next|next question|continue)(?:\s*[→›»➜➔⟶➡])?$/i.test(el.getAttribute('aria-label') || text(el) || el.value || ''));
       if (buttons.length !== 1) throw Error('Could not identify one Next button. Advance manually.');
       buttons[0].click();
       return 'Next clicked.';

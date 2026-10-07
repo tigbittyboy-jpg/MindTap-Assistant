@@ -28,6 +28,19 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 2);
+  assert.equal(window.mindtapAssistant.version, 3);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
+});
+
+test('preserves superscript units and recognizes an arrow beside Next', () => {
+  const window = fixture('<fieldset><legend>Specific volume is 0.001865 ft<sup>3</sup>/lb. What is density?</legend>' +
+    '<label><input type="radio" name="q">56.19 lb/ft<sup>3</sup></label>' +
+    '<label><input type="radio" name="q">536.19 lb/ft<sup>3</sup></label></fieldset><button id="next">NEXT →</button>');
+  const result = window.mindtapAssistant.read();
+  assert.match(result.prompt, /ft\^\(3\)/);
+  assert.equal(result.choices[1], '536.19 lb/ft^(3)');
+  let clicked = false;
+  window.document.querySelector('#next').addEventListener('click', () => clicked = true);
+  window.mindtapAssistant.next(result.fingerprint);
+  assert.equal(clicked, true);
 });
