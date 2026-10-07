@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 12);
+  assert.equal(window.mindtapAssistant.version, 13);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -229,4 +229,25 @@ test('textbook capture refuses unrelated sites and sections without paragraphs',
   assert.throws(() => fixture('<p data-cgi="x">Text</p>').mindtapAssistant.textbook(), /Cengage textbook/);
   const window = fixture('<main>Loading</main>', 'https://ebooks.cengage.com/reader/book');
   assert.throws(() => window.mindtapAssistant.textbook(), /No readable/);
+});
+
+
+test('captures textbook text from the Cengage reader frame, excluding the shell and hidden text', () => {
+  const window = fixture('<aside><p data-cgi="sidebar">Sidebar noise</p></aside>' +
+    '<div id="reading-section"><iframe id="iframe-page"></iframe></div>', 'https://ebooks.cengage.com/reader/book');
+  const frame = window.document.querySelector('#iframe-page');
+  const bookWindow = frame.contentWindow;
+  bookWindow.HTMLElement.prototype.getClientRects = function() { return this.hidden ? [] : [{}]; };
+  frame.contentDocument.body.innerHTML = '<section><header><h1>7.2. Types and Sizes of Tubing</h1></header>' +
+    '<p data-cgi="first">Copper tubing is generally used for plumbing, heating, and refrigerant piping.</p>' +
+    '<p data-cgi="second">Soft copper tubing may be bent.</p>' +
+    '<p data-cgi="hidden" style="display:none">Hidden duplicate</p></section>';
+  const data = window.mindtapAssistant.textbook();
+  assert.equal(data.title, '7.2. Types and Sizes of Tubing');
+  assert.equal(data.text, 'Copper tubing is generally used for plumbing, heating, and refrigerant piping.\n\nSoft copper tubing may be bent.');
+  assert.ok(!data.text.includes('Sidebar'));
+});
+test('an empty reader frame does not fall back to unrelated shell paragraphs', () => {
+  const window = fixture('<p data-cgi="shell">Shell text</p><iframe id="iframe-page"></iframe>', 'https://ebooks.cengage.com/reader/book');
+  assert.throws(() => window.mindtapAssistant.textbook(), /No readable textbook paragraphs/);
 });

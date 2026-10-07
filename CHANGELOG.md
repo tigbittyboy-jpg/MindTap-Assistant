@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.5.1
+
+- Read textbook paragraphs from Cengage’s same-origin iframe-page reader frame.
+- Capture the heading inside that frame and use its own styles to filter hidden text.
+- Avoid saving reader shell/sidebar text if the book frame is empty.
+
 ## v0.5
 
 - Save readable Cengage textbook sections in local Chrome storage, with a 500 MB archive limit and unlimitedStorage permission.

@@ -1,6 +1,6 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 12) return;
-  const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
+  if (globalThis.mindtapAssistant?.version === 13) return;
+  const visible = el => !!el.getClientRects().length && el.ownerDocument.defaultView.getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
       if (node.nodeType === Node.TEXT_NODE) return node.textContent;
@@ -10,7 +10,7 @@
       // accessible copy labels the radio. Read the displayed copy only.
       const displayedAnswer = node.closest('.lrn-possible-answer');
       if (node.getAttribute('aria-hidden') === 'true' && !displayedAnswer) return '';
-      const style = getComputedStyle(node);
+      const style = node.ownerDocument.defaultView.getComputedStyle(node);
       if (style.display === 'none' || ['hidden', 'collapse'].includes(style.visibility)) return '';
       const value = [...node.childNodes].map(read).join('');
       if (node.tagName === 'SUP') return `^(${value})`;
@@ -142,14 +142,23 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 12,
+    version: 13,
     textbook() {
       if (location.hostname !== 'ebooks.cengage.com') throw Error('Open a Cengage textbook section before saving.');
-      const paragraphs = [...document.querySelectorAll('p[data-cgi]')]
+      // Cengage's reader shell stores the actual section in a same-origin frame.
+      const frame = document.querySelector('#reading-section iframe#iframe-page,iframe#iframe-page');
+      let bookDocument = document;
+      if (frame) {
+        if (!visible(frame)) throw Error('The textbook page is not visible. Open a section first.');
+        try { bookDocument = frame.contentDocument; }
+        catch { throw Error('Cannot read this textbook frame. It must be accessible on the same site.'); }
+        if (!bookDocument?.body) throw Error('The textbook frame is still loading or inaccessible. Wait and try again.');
+      }
+      const paragraphs = [...bookDocument.querySelectorAll('p[data-cgi]')]
         .filter(visible).map(node => text(node)).filter(Boolean);
       if (!paragraphs.length) throw Error('No readable textbook paragraphs found. Open a section and wait for it to load.');
-      const headings = [...document.querySelectorAll('h1[data-cgi],h2[data-cgi],h3[data-cgi],main h1,main h2')].filter(visible);
-      const title = text(headings[0]) || document.title || 'Textbook section';
+      const headings = [...bookDocument.querySelectorAll('h1,h2,h3')].filter(visible);
+      const title = text(headings[0]) || bookDocument.title || document.title || 'Textbook section';
       const content = paragraphs.join('\n\n');
       if (content.length > 1000000) throw Error('This section exceeds one million characters. Open a smaller subsection.');
       return {title: title.slice(0, 200), text: content};
