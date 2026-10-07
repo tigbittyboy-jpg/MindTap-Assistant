@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 8);
+  assert.equal(window.mindtapAssistant.version, 9);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -142,4 +142,29 @@ test('counts nested custom radio wrappers as one answer control', () => {
     '<div role="radio"><span role="radio" aria-label="4"></span></div></fieldset>');
   const data = window.mindtapAssistant.read();
   assert.equal(data.choices.join(','), '3,4');
+});
+
+
+test('reads Learnosity displayed aria-hidden answers without duplicate accessible copies', () => {
+  const window = fixture('<fieldset><legend>Which description defines matter?</legend>' +
+    '<div><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">' +
+    '<div class="lrn_contentWrapper" aria-hidden="true">exists only as a liquid or solid and has mass</div>' +
+    '<div class="sr-only" aria-hidden="true">exists only as a liquid or solid and has mass</div></div></div>' +
+    '<div><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">' +
+    '<div class="lrn_contentWrapper" aria-hidden="true">has mass and occupies space</div>' +
+    '<div class="sr-only" aria-hidden="true">has mass and occupies space</div></div></div></fieldset>');
+  const data = window.mindtapAssistant.read();
+  assert.equal(data.choices.join('|'), 'exists only as a liquid or solid and has mass|has mass and occupies space');
+  assert.equal(data.prompt, 'Which description defines matter?');
+  window.mindtapAssistant.apply(data.fingerprint, 1);
+  assert.equal(window.mindtapAssistant.verify(data.fingerprint, 1).text, 'has mass and occupies space');
+});
+
+test('continues to exclude unrelated aria-hidden text and visually hidden Learnosity answers', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' +
+    '<div><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">3</div>' +
+    '<span aria-hidden="true">Incorrect feedback</span></div>' +
+    '<div><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">4' +
+    '<span style="display:none">hidden explanation</span></div></div></fieldset>');
+  assert.equal(window.mindtapAssistant.read().choices.join(','), '3,4');
 });

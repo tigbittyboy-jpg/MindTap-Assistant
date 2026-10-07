@@ -1,11 +1,15 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 8) return;
+  if (globalThis.mindtapAssistant?.version === 9) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
       if (node.nodeType === Node.TEXT_NODE) return node.textContent;
       if (node.nodeType !== Node.ELEMENT_NODE || excluded.has(node)) return '';
-      if (node.matches('script,style,svg,[aria-hidden="true"],[hidden],.material-icons,mat-icon')) return '';
+      if (node.matches('script,style,svg,[hidden],.material-icons,mat-icon,.sr-only')) return '';
+      // Learnosity marks its displayed answer copy aria-hidden because a separate
+      // accessible copy labels the radio. Read the displayed copy only.
+      const displayedAnswer = node.closest('.lrn-possible-answer');
+      if (node.getAttribute('aria-hidden') === 'true' && !displayedAnswer) return '';
       const style = getComputedStyle(node);
       if (style.display === 'none' || ['hidden', 'collapse'].includes(style.visibility)) return '';
       const value = [...node.childNodes].map(read).join('');
@@ -115,7 +119,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 8,
+    version: 9,
     read() { const {controls, ...data} = question(); return data; },
     apply(expected, index) {
       const data = question();
