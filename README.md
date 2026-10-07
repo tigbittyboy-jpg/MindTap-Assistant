@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.5.5.6
+# MindTap Assistant — v0.6
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It answers in one pass, using matching saved textbook excerpts first. Relevant textbook facts take priority; the model can use its own knowledge when excerpts do not cover the question.
 
@@ -18,7 +18,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.5.6](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.6.zip).
+1. [Download v0.6](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.6.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -71,7 +71,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.5.6**. The popup badge shows **v0.5.5.6**.
+Chrome shows version **0.6.0**. The popup badge shows **v0.6**.
 
 ## 5. Use it
 
@@ -139,6 +139,14 @@ Open the Ollama app. If that does not work, open another Terminal window and run
 
 Run `ollama pull qwen3:8b` and wait for the download to finish.
 
+### Faster answers in v0.6
+
+The helper starts loading your model when it opens and keeps it loaded between questions. This uses RAM until Ollama unloads it; run `ollama stop qwen3:8b` when finished if you want to free it.
+
+Answers use a 512-token output limit with thinking off (previously 2048). This is a ceiling, so already-short answers may take about the same time. If unusually long choices cause incomplete answers, restart with `export OLLAMA_MAX_TOKENS=1024`. Thinking mode retains a 2048-token default.
+
+Repeat questions reuse a cached answer when the question, ordered choices, supplied textbook excerpts, model settings, and instructions match exactly. The status says **Cached answer reused**. The cache holds up to 256 answers and 8 MB in backend memory. Restart the helper to clear it; it does not persist after a restart. A cached answer preserves the original result, including any mistakes.
+
 ### Answers are taking too long
 
 Stop the helper with **Control + C**, then restart it with thinking off:
@@ -148,7 +156,7 @@ export OLLAMA_THINK=false
 python3 backend/server.py
 ```
 
-Close memory-heavy apps. The first question can be slower while the model loads. The single model request can wait up to 90 seconds; the extension allows 100 seconds total.
+Close memory-heavy apps. The first question can be slower if model warm-up is still running. The single model request can wait up to 90 seconds; the extension allows 100 seconds total.
 
 ### It cannot find Next or Review
 

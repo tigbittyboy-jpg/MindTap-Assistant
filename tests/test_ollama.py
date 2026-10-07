@@ -10,6 +10,7 @@ from backend import server
 
 class OllamaIntegrationTests(unittest.TestCase):
     def setUp(self):
+        server.clear_answer_cache()
         self.payloads = []
         owner = self
         class FakeOllama(BaseHTTPRequestHandler):
@@ -68,6 +69,17 @@ class OllamaIntegrationTests(unittest.TestCase):
         question = json.loads(payload['messages'][1]['content'])
         self.assertEqual(question['choices'], [{'index': 0, 'text': '3'}, {'index': 1, 'text': '4'}])
         self.assertIn('answer_text', payload['format']['required'])
+
+    def test_repeat_http_question_skips_second_model_request(self):
+        def request_answer():
+            request = urllib.request.Request(f'http://127.0.0.1:{self.gateway.server_port}/analyze',
+                data=json.dumps({'prompt': '2+2?', 'choices': ['3', '4']}).encode(),
+                headers={'Content-Type': 'application/json'})
+            with self.client.open(request, timeout=5) as response:
+                return json.load(response)
+        self.assertFalse(request_answer()['cached'])
+        self.assertTrue(request_answer()['cached'])
+        self.assertEqual(len(self.payloads), 1)
 
     def test_hvac_application_context_reaches_single_model_request(self):
         server.analyze({'prompt': 'A low GWP replacement for R-410A in residential heat pumps?',

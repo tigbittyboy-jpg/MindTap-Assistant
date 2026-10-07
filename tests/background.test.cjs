@@ -4,7 +4,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = [], bookTie = false, badQuote = false} = {}) {
+function harness({cached = false, count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = [], bookTie = false, badQuote = false} = {}) {
   let listener, cursor = 0, selected = -1, transitionalReads = 0;
   const session = {}, local = {textbookSections}, requests = [], clicks = [], finishes = [];
   const data = () => ({prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4'], fingerprint: `q${cursor}`});
@@ -50,7 +50,7 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
     fetch: async (_url, request) => {
       const body = JSON.parse(request.body); requests.push(body);
       if (disagreement) return {ok: false, json: async () => ({error: 'Textbook reference could not support an answer. Review manually.'})};
-      return {ok: true, json: async () => ({textbook_resolved: bookTie, evidence_source_index: 0, evidence_source: 'Numbers', evidence_quote: badQuote ? 'Fabricated quote that is absent.' : 'Question number choices: 2 plus 2 equals 4.', reference_count: body.references.length, analysis_mode: unchecked ? undefined : 'single_pass', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
+      return {ok: true, json: async () => ({cached, textbook_resolved: bookTie, evidence_source_index: 0, evidence_source: 'Numbers', evidence_quote: badQuote ? 'Fabricated quote that is absent.' : 'Question number choices: 2 plus 2 equals 4.', reference_count: body.references.length, analysis_mode: unchecked ? undefined : 'single_pass', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
   vm.runInContext(source, context);
@@ -189,4 +189,12 @@ test('detached extension tab receives control replies while ordinary webpages re
   const app = harness();
   assert.equal((await app.detachedState()).active, false);
   assert.equal(app.rejectedWebpage(), undefined);
+});
+
+test('cached answers keep selection verification and record reuse', async () => {
+  const app = harness({cached: true, count: 1, review: true});
+  await app.start();
+  assert.equal(app.clicks.length, 1);
+  assert.equal(app.session.runHistory[0].cached, true);
+  assert.equal(app.session.runHistory[0].selectionVerified, true);
 });

@@ -125,14 +125,14 @@ async function analyze(tabId) {
         !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
     if (answer.answer_text !== undefined && answer.answer_text !== data.choices[answer.index]) throw Error('AI answer text and index disagree.');
     await recordHistory({id: historyId, suggestedIndex: answer.index, suggestedText: data.choices[answer.index], confidence: answer.confidence,
-      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking});
+      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, cached: answer.cached === true});
   } catch (error) {
     await recordHistory({id: historyId, error: error.message});
     throw error;
   }
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
+  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n${answer.cached ? "Cached answer reused.\n" : ""}\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
   return suggestion;
 }
 async function automate(tabId) {

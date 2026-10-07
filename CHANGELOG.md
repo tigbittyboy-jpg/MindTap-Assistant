@@ -1,5 +1,13 @@
 # Release notes
 
+## v0.6
+
+- Warm the model on backend startup and keep it loaded between questions.
+- Lower the default output limit from 2048 to 512 tokens with thinking off; allow OLLAMA_MAX_TOKENS overrides.
+- Cache up to 256 validated answers / 8 MB in memory, keyed by exact question, ordered choices, excerpts, settings, and instructions.
+- Serialize generation to avoid duplicate simultaneous work; failed responses are not cached.
+- Show cached reuse in answer status. Restart the updated backend to apply these changes.
+
 ## v0.5.5.6
 
 - Add stationary residential/light commercial HVAC and heat pump context to the model instructions.

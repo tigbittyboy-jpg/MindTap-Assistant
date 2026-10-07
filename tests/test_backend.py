@@ -2,10 +2,14 @@ import os
 import urllib.error
 import unittest
 from unittest.mock import patch
+from backend import server
 from backend.server import analyze, validate_question, validate_answer, connection_error, check_connection, provider_error
 
 
 class BackendTests(unittest.TestCase):
+    def setUp(self):
+        server.clear_answer_cache()
+
     def test_question_validation(self):
         self.assertEqual(validate_question({'prompt': '2+2?', 'choices': ['3', '4']})['choices'], ['3', '4'])
         for data in [[], {}, {'prompt': 'x', 'choices': ['one']}, {'prompt': 'x', 'choices': ['', 'b']}]:
