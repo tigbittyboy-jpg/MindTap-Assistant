@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 4) return;
+  if (globalThis.mindtapAssistant?.version === 5) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = el => {
     if (!el) return '';
@@ -29,7 +29,7 @@
     if (buttons.length !== 1) throw Error(`Found ${buttons.length} possible Next buttons. Use Choose Next button in the extension, then click the page’s Next control once.`);
     return buttons[0];
   }
-  function question(override = '') {
+  function question() {
     const inputs = [...document.querySelectorAll('input[type=radio], [role=radio]')].filter(visible);
     const groups = new Map();
     for (const input of inputs) {
@@ -49,7 +49,7 @@
     let container = controls[0].closest('fieldset,[role=radiogroup]') || controls[0].parentElement;
     while (container.parentElement && !controls.every(input => container.contains(input))) container = container.parentElement;
     // Prefer explicit question elements; answer controls can be deeply nested.
-    let prompt = override.trim();
+    let prompt = '';
     let promptContainer = container;
     const selectors = 'legend,[data-question-text],.question-text,.questionText,.question-stem,.questionStem,.question-prompt,.stem,[role=heading]';
     for (let depth = 0; !prompt && container && depth < 14; depth++, container = container.parentElement) {
@@ -73,16 +73,16 @@
         promptContainer = container;
       }
     }
-    if (!prompt) throw Error('Could not identify the question prompt. Paste the question into the extension’s Question text field, then analyze again.');
-    if (!override && promptContainer?.querySelector('img,canvas,svg,video')) throw Error('This question may contain a diagram. Text-only analysis is unsupported.');
+    if (!prompt) throw Error('Could not identify the question prompt. Open a single visible question and try again.');
+    if (promptContainer?.querySelector('img,canvas,svg,video')) throw Error('This question may contain a diagram. Text-only analysis is unsupported.');
     if (prompt.length > 12000) throw Error('Question text exceeds 12000 characters.');
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 4,
-    read(override) { const {controls, ...data} = question(override); return data; },
-    apply(expected, index, override) {
-      const data = question(override);
+    version: 5,
+    read() { const {controls, ...data} = question(); return data; },
+    apply(expected, index) {
+      const data = question();
       if (data.fingerprint !== expected) throw Error('Question changed. Analyze it again.');
       const control = data.controls[index];
       if (!control || control.disabled || control.getAttribute('aria-disabled') === 'true') throw Error('Answer control unavailable.');
@@ -110,8 +110,8 @@
         document.addEventListener('keydown', key, true);
       });
     },
-    next(expected, override) {
-      if (question(override).fingerprint !== expected) throw Error('Question changed. Analyze it again.');
+    next(expected) {
+      if (question().fingerprint !== expected) throw Error('Question changed. Analyze it again.');
       findNext().click();
       return 'Next clicked.';
     }

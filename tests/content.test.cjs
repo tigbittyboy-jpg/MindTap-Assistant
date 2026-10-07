@@ -14,21 +14,22 @@ test('short prompt outside deeply nested answer controls', () => {
   const window = fixture('<section><p class="question-text">2 + 2?</p>' + '<div>'.repeat(9) + choices + '</div>'.repeat(9) + '</section><button>Next</button>');
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
-test('manual prompt fallback selects answer and rejects changed answer choices', () => {
-  const window = fixture('<div>' + choices + '</div>');
+test('page prompt selects answer and rejects changed answer choices', () => {
+  const missingPrompt = fixture('<div>' + choices + '</div>');
+  assert.throws(() => missingPrompt.mindtapAssistant.read(), /Could not identify the question prompt/);
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   const helper = window.mindtapAssistant;
-  assert.throws(() => helper.read(), /Paste the question/);
-  const result = helper.read('2 + 2?');
-  helper.apply(result.fingerprint, 1, '2 + 2?');
+  const result = helper.read();
+  helper.apply(result.fingerprint, 1);
   assert.equal(window.document.querySelectorAll('input')[1].checked, true);
   window.document.querySelectorAll('label')[1].lastChild.textContent = '5';
-  assert.throws(() => helper.apply(result.fingerprint, 1, '2 + 2?'), /Question changed/);
+  assert.throws(() => helper.apply(result.fingerprint, 1), /Question changed/);
 });
 test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 4);
+  assert.equal(window.mindtapAssistant.version, 5);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
