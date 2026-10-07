@@ -1,0 +1,40 @@
+# Release notes
+
+## v0.4.1
+
+- Short explanations for both answer checks: 1–2 sentences requested, with a 360-character limit per explanation.
+- Rewrote setup and troubleshooting instructions in plain language.
+
+## v.0.3.4 patch notes
+
+- Uses local Ollama exclusively.
+- Reads Learnosity displayed answer text marked `aria-hidden` without duplicate screen-reader text.
+- Handles empty labels, repeated selection labels, and nested custom radio controls.
+- Reports unreadable and duplicate answer-label counts for troubleshooting.
+
+## v.0.3.5 patch notes
+
+- Resolves Learnosity screen-reader label references to the displayed answer copy.
+- Reads displayed answers inside aria-hidden row wrappers while excluding visually hidden rows.
+
+## v.0.3.6 patch notes
+
+- Redesigned the popup with a navy palette, indigo and teal actions, and a rose Stop control.
+- Arranged actions and automatic mode in a symmetrical two-column grid.
+- Removed the Export recent run button and its download handler.
+- Added a visible version badge, keyboard focus indicators, and a compact status panel.
+
+## v.0.3.7 patch notes
+
+- Added a navy and indigo book icon with a mint sparkle.
+- Configured 16px/32px toolbar icons and 48px/128px extension listing icons.
+- Removed white corner backgrounds and regenerated all icon sizes with transparency.
+
+## v0.4 patch notes
+
+- Every analysis runs two sequential Ollama conversations; the second receives the original question without the first answer.
+- The second pass emphasizes exact application, qualifiers, every option, and unit checks.
+- Agreement returns both explanations and the lower confidence estimate. Agreement is not proof of correctness.
+- Disagreement stops automatic mode before selecting or advancing and displays both answers for manual review. No suggestion is stored on failure.
+- The extension refuses unchecked responses from older backends. Update both extension and backend.
+- Each pass uses OLLAMA_TIMEOUT_SECONDS (5–90, default 90); the extension allows 195 seconds total. Expect roughly twice the generation time. Thinking remains off by default; to turn it off in an existing terminal, run `export OLLAMA_THINK=false` before restarting.
