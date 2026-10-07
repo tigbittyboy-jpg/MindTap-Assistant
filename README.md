@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.6
+# MindTap Assistant — v0.6.1
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It answers in one pass, using matching saved textbook excerpts first. Relevant textbook facts take priority; the model can use its own knowledge when excerpts do not cover the question.
 
@@ -18,7 +18,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.6](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.6.zip).
+1. [Download v0.6.1](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.6.1.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -71,7 +71,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.6.0**. The popup badge shows **v0.6**.
+Chrome shows version **0.6.1**. The popup badge shows **v0.6.1**.
 
 ## 5. Use it
 
