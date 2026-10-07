@@ -110,11 +110,11 @@ function showMode(mode) {
   for (const id of ['apply', 'next', 'auto']) document.querySelector('#' + id).disabled = textbookOnly;
   if (textbookOnly) showAutomation(false);
   document.querySelector('.intro').textContent = textbookOnly
-    ? 'Search your saved textbook sections. No AI, Ollama, or backend needed. Choose your answer on the page.'
+    ? 'Find possible answer text matches and saved passages. No AI, Ollama, or backend needed. Choose your answer on the page.'
     : detached ? 'Controls the active tab in your original browser window. Keep this window open beside MindTap.'
     : 'Open a question and start. Your local Ollama model answers using matching saved textbook excerpts in one pass.';
   document.querySelector('.note').textContent = textbookOnly
-    ? 'Matching passages are references, not an answer key. Select answers and use Next on the MindTap page yourself.'
+    ? 'Possible answers are text matches, not verified answers. Ambiguous questions show passages only. Select answers and use Next on the MindTap page yourself.'
     : 'Automatic mode can submit answers and click Review → Finish. AI suggestions may be incorrect. Uses textbook excerpts as context for one AI answer. Stops on unsupported questions or request errors.';
 }
 chrome.storage.local.get('assistanceMode').then(settings => showMode(settings.assistanceMode));

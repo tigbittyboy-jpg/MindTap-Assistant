@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.6.2
+# MindTap Assistant — v0.6.3
 
 A Chrome extension with two modes: find saved textbook passages without AI, or ask a local AI model for an answer. It answers in one pass, using matching saved textbook excerpts first. Relevant textbook facts take priority; the model can use its own knowledge when excerpts do not cover the question.
 
@@ -14,7 +14,7 @@ The AI can still be wrong, even with textbook references.
 4. Open your textbook sections in MindTap with auto-save on. Wait until the textbook progress card says the section is saved. Each classmate builds their own saved library from their textbook access.
 5. Open a multiple-choice question and click **Find textbook passages**. Read the matching passages and section titles, then choose the answer and click Next on the MindTap page.
 
-This mode runs entirely in Chrome. Skip the Ollama, Python, and backend steps below. It finds up to three matching passages; it does not determine the correct answer or submit answers. Missing matches mean you may need to open more relevant textbook sections. Switching modes stops automation and clears the current suggestion. Existing users stay in Local AI mode until they change the setting.
+This mode runs entirely in Chrome. Skip the Ollama, Python, and backend steps below. It finds up to three matching passages; it can show a **Possible answer (text match)** with a short matching reason and source sentence when just one choice appears in relevant, non-negated sentences. This is not a verified answer. Ambiguous matches, numeric-only choices, True/False, and NOT/EXCEPT questions show passages only. It does not submit answers. Missing matches mean you may need to open more relevant textbook sections. Switching modes stops automation and clears the current suggestion. Existing users stay in Local AI mode until they change the setting.
 
 ## What you need
 
@@ -28,7 +28,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.6.2](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.2.zip).
+1. [Download v0.6.3](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.3.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -81,7 +81,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.6.2**. The popup badge shows **v0.6.2**.
+Chrome shows version **0.6.3**. The popup badge shows **v0.6.3**.
 
 ## 5. Use it
 

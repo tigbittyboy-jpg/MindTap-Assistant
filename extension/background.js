@@ -72,6 +72,32 @@ function findReferences(data, sections) {
 async function assistanceMode() {
   return (await chrome.storage.local.get('assistanceMode')).assistanceMode === 'textbook' ? 'textbook' : 'ai';
 }
+function textbookTextMatch(data, references) {
+  if (/\b(?:not|except|false|incorrect)\b/i.test(data.prompt)) return null;
+  const normalize = text => text.toLowerCase().replace(/\br\s*-?\s*(\d{2,4}[a-z]*)\b/g, 'r$1').replace(/[^a-z0-9]+/g, ' ').trim();
+  const terms = referenceTokens(data.prompt);
+  const matches = [];
+  for (let index = 0; index < data.choices.length; index++) {
+    const choice = normalize(data.choices[index]);
+    if (choice.length < 3 || !/[a-z]/.test(choice) || /^(?:true|false|yes|no)$|\b(?:all|none) of (?:the )?above\b/.test(choice)) continue;
+    const aliases = [choice];
+    // HFC R-32 and R-32 name the same refrigerant; keep its entire designation.
+    const refrigerant = choice.match(/^(?:hfc|hfo|hc) (r\d{2,4}[a-z]*)$/);
+    if (refrigerant) aliases.push(refrigerant[1]);
+    for (const reference of references) {
+      const sentences = reference.text.match(/[^.!?\n]+(?:[.!?]|$)/g) || [reference.text];
+      const evidence = sentences.find(sentence => {
+        const text = ' ' + normalize(sentence) + ' ';
+        if (!aliases.some(alias => text.includes(' ' + alias + ' '))) return false;
+        if (/\b(?:not|never|no|without|unlike)\b|n['’]t\b/i.test(sentence)) return false;
+        const tokens = new Set(referenceTokens(sentence));
+        return terms.filter(term => tokens.has(term)).length >= 2;
+      });
+      if (evidence) { matches.push({index, source: reference.source, evidence: evidence.trim()}); break; }
+    }
+  }
+  return matches.length === 1 ? matches[0] : null;
+}
 async function lookupTextbook(tabId) {
   suggestions.delete(tabId);
   const data = await stableQuestion(tabId);
@@ -79,8 +105,13 @@ async function lookupTextbook(tabId) {
   if (!textbookSections.length) return report('No textbook sections saved yet. Open your textbook sections with auto-save on, then return here and find passages. No AI or backend is needed.');
   const references = findReferences(data, textbookSections);
   if (!references.length) return report('No matching saved passages found. Open the relevant textbook section to save it, then try again. Choose your answer manually.');
-  return report('Textbook passages · no AI\nChoose your answer manually. These are search matches, not an answer key.\n\n' +
+  const match = textbookTextMatch(data, references);
+  const heading = match
+    ? `Possible answer (text match): ${data.choices[match.index]}\nWhy: Only this choice matches a relevant, non-negated sentence in the retrieved passages.\n${match.source}: “${match.evidence}”\nThis is a text match, not a verified answer. Choose manually.\n\n`
+    : 'No distinct answer text match. Review these passages and choose manually.\n\n';
+  return report(heading + 'Textbook passages · no AI\n\n' +
     references.map((item, index) => `${index + 1}. ${item.source}\n${item.text}`).join('\n\n'));
+
 }
 let textbookSaveQueue = Promise.resolve();
 function saveTextbook(tabId, automatic = false) {

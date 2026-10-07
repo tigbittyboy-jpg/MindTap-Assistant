@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.6.3
+
+- Show a possible answer text match, short matching reason, and source sentence alongside passages in textbook-only mode.
+- Require one distinct choice match in relevant, non-negated sentences; ambiguous and unsupported question forms show passages only.
+- Keep manual selection, no AI calls, and no backend requirement.
+
 ## v0.6.2
 
 - Add a saved Textbook-only mode that finds up to three relevant passages without Ollama or the backend.

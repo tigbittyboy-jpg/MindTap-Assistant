@@ -4,10 +4,10 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-function harness({switchToTextbookOnFetch = false, assistanceMode = 'ai', cached = false, count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = [], bookTie = false, badQuote = false} = {}) {
+function harness({questionData, switchToTextbookOnFetch = false, assistanceMode = 'ai', cached = false, count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = [], bookTie = false, badQuote = false} = {}) {
   let listener, cursor = 0, selected = -1, transitionalReads = 0;
   const session = {}, local = {textbookSections, assistanceMode}, requests = [], clicks = [], finishes = [];
-  const data = () => ({prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4'], fingerprint: `q${cursor}`});
+  const data = () => ({...(questionData || {prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4']}), fingerprint: `q${cursor}`});
   const storage = state => ({
     async get(key) { return structuredClone({[key]: state[key]}); },
     async set(values) { Object.assign(state, structuredClone(values)); }
@@ -243,4 +243,17 @@ test('switching to textbook mode during AI generation stops automatic selection'
   assert.equal(app.local.automationActive, false);
   assert.equal(app.clicks.length, 0);
   assert.match(app.local.status, /AI suggestion discarded/);
+});
+
+test('textbook-only mode displays possible answer, short reason, and passage without AI', async () => {
+  const app = harness({assistanceMode: 'textbook',
+    questionData: {prompt: 'Which refrigerant replaces R-410A in residential heat pumps?', choices: ['HFO-1234yf', 'HFC R-32']},
+    textbookSections: [{title: 'Refrigerants', text: 'R-32 replaces R-410A in residential heat pumps.'}]});
+  const result = await app.command({action: 'analyze', tabId: 1});
+  assert.match(result.message, /Possible answer \(text match\): HFC R-32/);
+  assert.match(result.message, /Why: Only this choice/);
+  assert.match(result.message, /Refrigerants: “R-32 replaces R-410A in residential heat pumps.”/);
+  assert.match(result.message, /Textbook passages · no AI/);
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.clicks.length, 0);
 });
