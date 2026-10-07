@@ -47,21 +47,62 @@ async function verifySelection(tabId, answer) {
   await recordHistory({id: answer.historyId, selectionVerified: false, error: lastError.message});
   throw lastError;
 }
+const referenceTokens = value => [...new Set((value.toLowerCase().match(/[a-z0-9]+/g) || [])
+  .filter(word => (word.length > 2 || /\d/.test(word)) && !new Set(['the','and','for','with','from','that','this','which','what','are','has','have','into','when','only','not','all','one','its','can','will','also']).has(word)))];
+function findReferences(data, sections) {
+  const terms = referenceTokens(data.prompt + ' ' + data.choices.join(' '));
+  const candidates = [];
+  for (const section of sections) {
+    for (const paragraph of section.text.split(/\n\n+/)) {
+      // Keep excerpts bounded so questions still fit the model context.
+      for (let start = 0; start < paragraph.length; start += 750) {
+        const excerpt = paragraph.slice(start, start + 900);
+        const tokens = new Set(referenceTokens(section.title + ' ' + excerpt));
+        const score = terms.filter(term => tokens.has(term)).length;
+        if (score >= 2) {
+          candidates.push({source: section.title, text: excerpt, score});
+          candidates.sort((a, b) => b.score - a.score);
+          if (candidates.length > 3) candidates.pop();
+        }
+      }
+    }
+  }
+  return candidates.sort((a, b) => b.score - a.score).slice(0, 3).map(({source, text}) => ({source, text}));
+}
+let textbookSaveQueue = Promise.resolve();
+function saveTextbook(tabId) {
+  const pending = textbookSaveQueue.catch(() => {}).then(() => saveTextbookSection(tabId));
+  textbookSaveQueue = pending;
+  return pending;
+}
+async function saveTextbookSection(tabId) {
+  const section = await page(tabId, 'textbook');
+  const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
+  if (textbookSections.some(item => item.text === section.text)) return report(`Already saved: ${section.title}`);
+  const archive = [...textbookSections, section];
+  const bytes = new TextEncoder().encode(JSON.stringify(archive)).length;
+  if (bytes > 500 * 1024 * 1024) throw Error('Textbook archive has reached its 500 MB limit.');
+  await chrome.storage.local.set({textbookSections: archive});
+  return report(`Saved: ${section.title}\n${archive.length} section(s) · ${(bytes / (1024 * 1024)).toFixed(2)} MB of 500 MB used.`);
+}
 async function analyze(tabId) {
   suggestions.delete(tabId);
   const data = await stableQuestion(tabId);
-  await report('Analyzing and independently double-checking…');
+  const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
+  const references = findReferences(data, textbookSections);
+  await report(`Analyzing and independently double-checking…\n${references.length} textbook excerpt(s) found.`);
   const historyId = crypto.randomUUID();
   await recordHistory({id: historyId, timestamp: new Date().toISOString(), prompt: data.prompt, choices: data.choices});
   let answer;
   try {
     const response = await fetch('http://127.0.0.1:8765/analyze', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt: data.prompt, choices: data.choices}), signal: AbortSignal.timeout(195000)
+      body: JSON.stringify({prompt: data.prompt, choices: data.choices, references}), signal: AbortSignal.timeout(195000)
     });
     answer = await response.json();
     if (!response.ok) throw Error(answer.error || 'Backend request failed.');
     if (answer.double_checked !== true || typeof answer.check_explanation !== 'string' || !answer.check_explanation.trim()) throw Error('Double check missing. Restart the v0.4 backend before selecting answers.');
+    if (references.length && answer.reference_count !== references.length) throw Error('Textbook context was not accepted. Restart the v0.5 backend.');
     if (!Number.isInteger(answer.index) || answer.index < 0 || answer.index >= data.choices.length ||
         !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
     if (answer.answer_text !== undefined && answer.answer_text !== data.choices[answer.index]) throw Error('AI answer text and index disagree.');
@@ -73,7 +114,7 @@ async function analyze(tabId) {
   }
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\nIndependent check agreed: ${answer.check_explanation}`);
+  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\nIndependent check agreed: ${answer.check_explanation}\n\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
   return suggestion;
 }
 async function automate(tabId) {
@@ -132,6 +173,7 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
   if (sender.id !== chrome.runtime.id || sender.tab) return;
   (async () => {
     if (request.action === 'stop') { stopped = true; return report('Stop requested.'); }
+    if (request.action === 'saveTextbook') return saveTextbook(request.tabId);
     if (running) throw Error('Automatic mode is running. Stop it before using manual controls.');
     if (request.action === 'analyze') {
       if (request.auto) {

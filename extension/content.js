@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 11) return;
+  if (globalThis.mindtapAssistant?.version === 12) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
@@ -142,7 +142,18 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 11,
+    version: 12,
+    textbook() {
+      if (location.hostname !== 'ebooks.cengage.com') throw Error('Open a Cengage textbook section before saving.');
+      const paragraphs = [...document.querySelectorAll('p[data-cgi]')]
+        .filter(visible).map(node => text(node)).filter(Boolean);
+      if (!paragraphs.length) throw Error('No readable textbook paragraphs found. Open a section and wait for it to load.');
+      const headings = [...document.querySelectorAll('h1[data-cgi],h2[data-cgi],h3[data-cgi],main h1,main h2')].filter(visible);
+      const title = text(headings[0]) || document.title || 'Textbook section';
+      const content = paragraphs.join('\n\n');
+      if (content.length > 1000000) throw Error('This section exceeds one million characters. Open a smaller subsection.');
+      return {title: title.slice(0, 200), text: content};
+    },
     read() { const {controls, ...data} = question(); return data; },
     apply(expected, index) {
       const data = question();

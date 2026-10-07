@@ -3,8 +3,8 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../extension/content.js'), 'utf8');
-function fixture(html) {
-  const window = new JSDOM(html, {runScripts: 'outside-only'}).window;
+function fixture(html, url = 'https://example.test') {
+  const window = new JSDOM(html, {runScripts: 'outside-only', url}).window;
   window.HTMLElement.prototype.getClientRects = function() { return this.hidden ? [] : [{}]; };
   window.eval(source);
   return window;
@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 11);
+  assert.equal(window.mindtapAssistant.version, 12);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -214,4 +214,19 @@ test('Finish refuses a question page, disabled controls, and ambiguous buttons',
   assert.equal(window.mindtapAssistant.finishReview(), false);
   window.document.body.innerHTML = '<button>Finish</button><button>Finish</button>';
   assert.throws(() => window.mindtapAssistant.finishReview(), /multiple Finish/);
+});
+
+
+test('saves Cengage textbook paragraphs without sidebar or hidden text', () => {
+  const window = fixture('<aside>Unrelated table of contents</aside><main><h2>Heating and Applying Solder</h2>' +
+    '<p data-cgi="FSAYRC685VDCB0300999">Do <i>not</i> melt solder with the flame; use the heat in the metal.</p>' +
+    '<p data-cgi="hidden" style="display:none">Hidden duplicate</p></main>', 'https://ebooks.cengage.com/reader/book');
+  const section = window.mindtapAssistant.textbook();
+  assert.equal(section.title, 'Heating and Applying Solder');
+  assert.equal(section.text, 'Do not melt solder with the flame; use the heat in the metal.');
+});
+test('textbook capture refuses unrelated sites and sections without paragraphs', () => {
+  assert.throws(() => fixture('<p data-cgi="x">Text</p>').mindtapAssistant.textbook(), /Cengage textbook/);
+  const window = fixture('<main>Loading</main>', 'https://ebooks.cengage.com/reader/book');
+  assert.throws(() => window.mindtapAssistant.textbook(), /No readable/);
 });

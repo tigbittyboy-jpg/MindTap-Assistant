@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.4.2
+# MindTap Assistant — v0.5
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If the answers disagree, it stops so you can review them.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.4.2](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.4.2.zip).
+1. [Download v0.5](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.4.2**. The popup badge shows **v0.4.2**.
+Chrome shows version **0.5.0**. The popup badge shows **v0.5**.
 
 ## 5. Use it
 
@@ -89,6 +89,17 @@ Closing the popup does **not** stop automatic mode. Reopen it to see progress or
 Two checks take roughly twice as long as one. Thinking mode is off for faster responses. If the checks disagree, no answer is selected and no Next button is clicked; review the question yourself. Matching answers do not guarantee correctness.
 
 The extension does not click a separate **Check Answer** or **Submit** button. Handle those yourself if needed. A page’s Next button may itself submit an answer.
+
+## Use your textbook for reference
+
+1. Open a textbook section in Cengage's eTextbook reader.
+2. Wait for the text to appear, then open this extension and click **Save textbook section**.
+3. Repeat for sections relevant to your course. You do not need to copy text into chat.
+4. Return to MindTap and analyze a question normally. The extension searches your saved sections and sends up to three matching excerpts to both answer checks.
+
+The status lists the section titles supplied as references. These are search matches, not proof the answer is correct. If nothing matches, the model answers from its own knowledge. Only opened sections are saved, not the whole book. Pages stored as images or inside inaccessible frames cannot be captured this way.
+
+Chrome’s unlimitedStorage permission allows the archive to exceed the normal extension storage quota. The app checks its own 500 MB limit before adding a section. Saved text stays in this extension's local Chrome storage (up to 500 MB of saved text, with a one-million-character limit per section). It is sent only to your local helper and Ollama. Removing the extension deletes its saved library; reloading the same installed extension preserves it. Section titles are captured where available; page numbers are not yet captured. Use textbook material you are permitted to save for personal study.
 
 ## Updating to a new version
 

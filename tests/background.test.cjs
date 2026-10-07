@@ -4,9 +4,9 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false} = {}) {
+function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = []} = {}) {
   let listener, cursor = 0, selected = -1, transitionalReads = 0;
-  const session = {}, local = {}, requests = [], clicks = [], finishes = [];
+  const session = {}, local = {textbookSections}, requests = [], clicks = [], finishes = [];
   const data = () => ({prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4'], fingerprint: `q${cursor}`});
   const storage = state => ({
     async get(key) { return structuredClone({[key]: state[key]}); },
@@ -18,6 +18,7 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
     scripting: {async executeScript(request) {
       if (request.files) return [];
       const [operation, args] = request.args;
+      if (operation === 'textbook') return [{result: {value: {title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}}}];
       if (operation === 'read') {
         if (cursor >= count) return [{result: {error: 'Activity complete'}}];
         if (transitionalReads > 0) {
@@ -45,15 +46,18 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
     }}
   };
   const context = vm.createContext({chrome, crypto: {randomUUID: () => `entry-${requests.length}`},
-    setTimeout: fn => queueMicrotask(fn), AbortSignal, Date,
+    setTimeout: fn => queueMicrotask(fn), AbortSignal, Date, TextEncoder,
     fetch: async (_url, request) => {
       const body = JSON.parse(request.body); requests.push(body);
       if (disagreement) return {ok: false, json: async () => ({error: 'Double check disagreed. Review manually.'})};
-      return {ok: true, json: async () => ({double_checked: !unchecked, check_explanation: 'Four is the only matching result.', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
+      return {ok: true, json: async () => ({reference_count: body.references.length, double_checked: !unchecked, check_explanation: 'Four is the only matching result.', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
   vm.runInContext(source, context);
   return {session, local, requests, clicks, finishes,
+    async save() {
+      return new Promise(resolve => listener({action: 'saveTextbook', tabId: 1}, {id: 'test'}, resolve));
+    },
     async start() {
       const reply = await new Promise(resolve => listener({action: 'analyze', auto: true, tabId: 1}, {id: 'test'}, resolve));
       assert.equal(reply.message, 'Automatic mode started.');
@@ -111,4 +115,22 @@ test('missing Finish stops without analyzing review questions', async () => {
   assert.equal(app.requests.length, 1);
   assert.equal(app.finishes.length, 0);
   assert.match(app.local.status, /Finish was not available/);
+});
+
+
+test('saved textbook excerpts are retrieved and supplied with question requests', async () => {
+  const app = harness({count: 1});
+  assert.match((await app.save()).message, /500 MB/);
+  assert.equal(app.local.textbookSections.length, 1);
+  assert.match((await app.save()).message, /Already saved/);
+  assert.equal(app.local.textbookSections.length, 1);
+  await app.start();
+  assert.equal(app.requests[0].references.length, 1);
+  assert.equal(app.requests[0].references[0].source, 'Numbers');
+  assert.ok(app.requests[0].references[0].text.includes('equals 4'));
+});
+test('unrelated library passages are not sent to the model', async () => {
+  const app = harness({count: 1, textbookSections: [{title: 'Brazing', text: 'Heat copper tubing near fittings.'}]});
+  await app.start();
+  assert.equal(app.requests[0].references.length, 0);
 });

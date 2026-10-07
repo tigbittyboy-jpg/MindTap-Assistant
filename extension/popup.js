@@ -8,7 +8,7 @@ async function command(action) {
     status.textContent = result.error || result.message;
   } catch (error) { status.textContent = error.message; }
 }
-for (const action of ['analyze', 'apply', 'next', 'chooseNext', 'stop']) {
+for (const action of ['analyze', 'apply', 'next', 'chooseNext', 'stop', 'saveTextbook']) {
   document.querySelector(`#${action}`).addEventListener('click', () => command(action));
 }
 chrome.storage.local.get('status').then(result => { if (result.status) status.textContent = result.status; });

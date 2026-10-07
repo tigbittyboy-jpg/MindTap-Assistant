@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.5
+
+- Save readable Cengage textbook sections in local Chrome storage, with a 500 MB archive limit and unlimitedStorage permission.
+- Search saved sections and supply up to three bounded excerpts to both independent checks.
+- Show reference section titles or indicate that no excerpts matched.
+- Update both backend and extension to enable textbook context.
+
 ## v0.4.2
 
 - Automatically opens Review after the last verified answer, then clicks Finish once and stops.

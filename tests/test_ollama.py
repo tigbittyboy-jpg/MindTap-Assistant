@@ -116,3 +116,17 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertIn('First pass: 4', message)
         self.assertIn('Second pass: 3', message)
         self.assertEqual(len(self.payloads), 2)
+
+    def test_both_checks_receive_same_reference_excerpts(self):
+        references = [{'source': 'Soldering', 'text': 'Use heat in the metal to melt solder.'}]
+        server.analyze({'prompt': '2+2?', 'choices': ['3', '4'], 'references': references})
+        self.assertEqual(len(self.payloads), 2)
+        for _, payload, _ in self.payloads:
+            question = json.loads(payload['messages'][1]['content'])
+            self.assertEqual(question['textbook_excerpts'], references)
+
+    def test_oversized_reference_is_rejected_before_inference(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid textbook excerpt'):
+            server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
+                            'references': [{'source': 'Book', 'text': 'x' * 901}]})
+        self.assertEqual(self.payloads, [])
