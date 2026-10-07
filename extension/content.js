@@ -38,7 +38,7 @@
   }
   function findNext() {
     if (chosenNext) {
-      if (!enabled(chosenNext)) throw Error('The chosen Next control is no longer available. Use Choose Next button again.');
+      if (!enabled(chosenNext)) throw Error('The chosen Next control is no longer available. Advance manually and analyze the next question.');
       return chosenNext;
     }
     const candidates = [...document.querySelectorAll('button,a,[role=button],input[type=button],input[type=submit]')]
@@ -46,7 +46,7 @@
       .filter(el => [el.getAttribute('aria-label'), el.getAttribute('title'), text(el), el.value].some(nextLabel));
     // A nested span with role=button and its parent are one actionable control.
     const buttons = candidates.filter(el => !candidates.some(parent => parent !== el && parent.contains(el)));
-    if (buttons.length !== 1) throw Error(`Found ${buttons.length} possible Next buttons. Use Choose Next button in the extension, then click the page’s Next control once.`);
+    if (buttons.length !== 1) throw Error(`Found ${buttons.length} possible Next buttons. Advance manually and analyze the next question.`);
     return buttons[0];
   }
   function question() {

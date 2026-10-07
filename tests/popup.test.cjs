@@ -21,6 +21,7 @@ async function harness(search='') {
 test('Open in window uses the original browser window and removes manual textbook saving',async()=>{
  const app=await harness();
  assert.equal(app.w.document.querySelector('#saveTextbook'),null);
+ assert.equal(app.w.document.querySelector('#chooseNext'),null);
  assert.equal(app.w.document.querySelector('#autoSaveTextbook').checked,true);
  await app.click('openWindow');
  assert.equal(app.windows[0].url,'chrome-extension://test/popup.html?sourceWindow=7');

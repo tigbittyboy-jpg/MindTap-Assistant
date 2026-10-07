@@ -4,7 +4,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = []} = {}) {
+function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false, textbookSections = [], bookTie = false, badQuote = false} = {}) {
   let listener, cursor = 0, selected = -1, transitionalReads = 0;
   const session = {}, local = {textbookSections}, requests = [], clicks = [], finishes = [];
   const data = () => ({prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4'], fingerprint: `q${cursor}`});
@@ -50,7 +50,7 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
     fetch: async (_url, request) => {
       const body = JSON.parse(request.body); requests.push(body);
       if (disagreement) return {ok: false, json: async () => ({error: 'Double check disagreed. Review manually.'})};
-      return {ok: true, json: async () => ({reference_count: body.references.length, double_checked: !unchecked, check_explanation: 'Four is the only matching result.', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
+      return {ok: true, json: async () => ({textbook_resolved: bookTie, evidence_source_index: 0, evidence_source: 'Numbers', evidence_quote: badQuote ? 'Fabricated quote that is absent.' : 'Question number choices: 2 plus 2 equals 4.', reference_count: body.references.length, double_checked: !unchecked, check_explanation: 'Four is the only matching result.', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
   vm.runInContext(source, context);
@@ -162,4 +162,18 @@ test('clearing runs after in-flight saves so the cleared archive stays empty', a
   await Promise.all([save, clear]);
   assert.equal(app.local.textbookSections.length, 0);
   assert.equal(app.local.autoSaveTextbook, false);
+});
+
+test('book-resolved disagreement continues automatic selection and advancement', async () => {
+  const app = harness({count: 1, bookTie: true, textbookSections: [{title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}]});
+  await app.start();
+  assert.equal(app.clicks.length, 1);
+  assert.equal(app.session.runHistory[0].textbookResolved, true);
+  assert.equal(app.session.runHistory[0].selectionVerified, true);
+});
+test('invalid tie-breaker evidence stops before automatic selection', async () => {
+  const app = harness({count: 1, bookTie: true, badQuote: true, textbookSections: [{title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}]});
+  await app.start();
+  assert.equal(app.clicks.length, 0);
+  assert.match(app.local.status, /evidence could not be verified/);
 });

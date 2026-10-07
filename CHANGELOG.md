@@ -1,5 +1,14 @@
 # Release notes
 
+## v0.5.5
+
+- Removed Choose Next button and balanced the question-control grid.
+
+- Disagreements trigger a textbook-only third pass when matching saved excerpts exist.
+- Require a supporting quote found in the cited excerpt before continuing automation.
+- Display the source and quote; pause if reference evidence is missing or invalid.
+- Allow up to 285 seconds for the three passes. Update backend and extension.
+
 ## v0.5.4
 
 - Added a dedicated live textbook status card showing reading, saving, waiting, and errors.

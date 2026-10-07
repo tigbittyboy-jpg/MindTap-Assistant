@@ -1,6 +1,6 @@
-# MindTap Assistant — v0.5.4
+# MindTap Assistant — v0.5.5
 
-A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If the answers disagree, it stops so you can review them.
+A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If answers disagree, it tries a textbook-based tie-breaker using saved excerpts. It pauses if there is no usable supporting evidence.
 
 The AI can still be wrong, even when both checks agree. Use it where study assistance is allowed.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.4](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.4.zip).
+1. [Download v0.5.5](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.4**. The popup badge shows **v0.5.4**.
+Chrome shows version **0.5.5**. The popup badge shows **v0.5.5**.
 
 ## 5. Use it
 
@@ -78,7 +78,6 @@ Open one multiple-choice question in MindTap, then click the extension icon.
 - **Analyze question:** reads the question and runs two independent answer checks. Each explanation is kept short.
 - **Select suggested answer:** selects the agreed answer after you review it.
 - **Click Next:** advances after verifying that the suggested answer is selected.
-- **Choose Next button:** lets you identify Next if the extension cannot find it.
 - **Automatically select & advance:** turn this on, then click **Analyze question** to run automatically.
 - **Stop automatic mode:** stops before the next action. An action already happening cannot be undone.
 
@@ -86,7 +85,7 @@ At the last question, automatic mode clicks **Review**, waits for one available 
 
 Closing the popup does **not** stop automatic mode. Reopen it to see progress or click Stop.
 
-Two checks take roughly twice as long as one. Thinking mode is off for faster responses. If the checks disagree, no answer is selected and no Next button is clicked; review the question yourself. Matching answers do not guarantee correctness.
+Two checks take roughly twice as long as one. Thinking mode is off for faster responses. If the checks disagree and saved excerpts match, a third pass must select an answer based only on those excerpts and return a supporting quote. The helper verifies that the quote appears in the cited excerpt, then automation continues with that answer. If excerpts are missing or the evidence check fails, it pauses for manual review. A real quote can still be misinterpreted by the model. Matching answers do not guarantee correctness.
 
 The extension does not click a separate **Check Answer** or **Submit** button. Handle those yourself if needed. A page’s Next button may itself submit an answer.
 
@@ -148,16 +147,11 @@ export OLLAMA_THINK=false
 python3 backend/server.py
 ```
 
-Close memory-heavy apps. The first question can be slower while the model loads. Each check can wait up to 90 seconds; the extension allows up to 195 seconds for both checks.
+Close memory-heavy apps. The first question can be slower while the model loads. Each check can wait up to 90 seconds; the extension allows up to 285 seconds for two checks and an optional tie-breaker.
 
-### It cannot find Next
+### It cannot find Next or Review
 
-1. Turn off automatic mode.
-2. Click **Choose Next button** in the extension.
-3. Within 30 seconds, click the page’s actual Next button. This identifying click does not advance.
-4. Reopen the extension and use **Click Next**, or restart automatic mode.
-
-You may need to choose it again after refreshing the page. Press Escape to cancel choosing.
+Advance using the page’s own button, then reopen the assistant and analyze the next question. Automatic mode pauses when the navigation button is missing or ambiguous. The Choose Next button has been removed.
 
 ### “Double check missing”
 

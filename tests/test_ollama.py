@@ -27,6 +27,8 @@ class OllamaIntegrationTests(unittest.TestCase):
                     answer['index'] = 99
                 if owner.mismatch:
                     answer['answer_text'] = '3'
+                if len(owner.payloads) == 3:
+                    answer.update(supported=owner.supported, source_index=0, evidence_quote=owner.quote)
                 self.respond({'message': {'content': json.dumps(answer)}})
             def respond(self, data):
                 encoded = json.dumps(data).encode()
@@ -34,6 +36,8 @@ class OllamaIntegrationTests(unittest.TestCase):
                 self.send_header('Content-Length', str(len(encoded)))
                 self.end_headers()
                 self.wfile.write(encoded)
+        self.supported = True
+        self.quote = 'Two plus two equals four.'
         self.disagreement = False
         self.invalid = False
         self.mismatch = False
@@ -130,3 +134,30 @@ class OllamaIntegrationTests(unittest.TestCase):
             server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
                             'references': [{'source': 'Book', 'text': 'x' * 901}]})
         self.assertEqual(self.payloads, [])
+
+    def test_textbook_tie_breaker_resolves_disagreement_with_real_quote(self):
+        self.disagreement = True
+        result = server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
+                                 'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
+        self.assertEqual(len(self.payloads), 3)
+        self.assertTrue(result['textbook_resolved'])
+        self.assertEqual(result['index'], 1)
+        self.assertEqual(result['evidence_quote'], 'Two plus two equals four.')
+        payload = self.payloads[2][1]
+        self.assertIn('using ONLY', payload['messages'][0]['content'])
+        self.assertEqual(len(payload['messages']), 2)
+        self.assertIn('supported', payload['format']['required'])
+
+    def test_textbook_tie_breaker_rejects_fabricated_quote(self):
+        self.disagreement = True
+        self.quote = 'Fabricated evidence not in the textbook.'
+        with self.assertRaisesRegex(ValueError, 'not present'):
+            server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
+                            'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
+
+    def test_textbook_tie_breaker_declines_unsupported_answer(self):
+        self.disagreement = True
+        self.supported = False
+        with self.assertRaisesRegex(ValueError, 'could not support'):
+            server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
+                            'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
