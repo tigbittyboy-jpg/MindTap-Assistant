@@ -64,6 +64,29 @@ def analyze(data):
         raise ValueError('Gemini returned an unsupported or blocked response.') from error
 
 
+def provider_error(error):
+    fallback = f'Gemini returned HTTP {error.code}. No readable error details were provided.'
+    try:
+        body = json.loads(error.read(65536))
+        details = body.get('error', {})
+        message = details.get('message')
+        status = details.get('status', '')
+        if not isinstance(message, str) or not message.strip():
+            return fallback
+        if not isinstance(status, str):
+            status = ''
+        # Do not surface credentials, even if the provider includes them in its explanation.
+        message = (status + ': ' if status else '') + message
+        key = os.environ.get('GEMINI_API_KEY', '')
+        if key:
+            message = message.replace(key, '[redacted API key]')
+        message = re.sub(r'AIza[A-Za-z0-9_-]+', '[redacted API key]', message)
+        message = re.sub(r'(?i)([?&](?:key|api_key|token)=)[^\s&"<>]+', r'\1[redacted]', message)
+        return f'Gemini HTTP {error.code}: {message[:1500]}'
+    except (ValueError, AttributeError, TypeError, OSError):
+        return fallback
+
+
 def connection_error(error):
     reason = error.reason if isinstance(error, urllib.error.URLError) else error
     if isinstance(reason, ssl.SSLCertVerificationError):
@@ -147,7 +170,7 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError) as error:
             self.reply(400, {'error': str(error)})
         except urllib.error.HTTPError as error:
-            self.reply(502, {'error': f'Gemini returned HTTP {error.code}. Check API key, model access, and quota.'})
+            self.reply(502, {'error': provider_error(error)})
         except (urllib.error.URLError, TimeoutError, ssl.SSLError) as error:
             self.reply(502, {'error': connection_error(error)})
 

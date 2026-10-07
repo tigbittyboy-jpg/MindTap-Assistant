@@ -6,7 +6,7 @@ import ssl
 import urllib.error
 import unittest
 from unittest.mock import patch
-from backend.server import analyze, validate_question, connection_error, check_connection
+from backend.server import analyze, validate_question, connection_error, check_connection, provider_error
 
 
 class BackendTests(unittest.TestCase):
@@ -56,6 +56,21 @@ class BackendTests(unittest.TestCase):
     def test_diagnostic_accepts_http_response_without_api_key(self, output, fetch):
         self.assertEqual(check_connection(), 0)
         self.assertIn('sends no API key', output.call_args.args[0])
+
+
+    @patch.dict(os.environ, {'GEMINI_API_KEY': 'private-test-key'})
+    def test_provider_error_explanation_redacts_key(self):
+        body = {'error': {'status': 'INVALID_ARGUMENT', 'message': 'Invalid API key private-test-key and AIzaFakeKey123456.'}}
+        error = urllib.error.HTTPError('https://example.test', 400, 'Bad request', {}, io.BytesIO(json.dumps(body).encode()))
+        message = provider_error(error)
+        self.assertIn('INVALID_ARGUMENT', message)
+        self.assertIn('[redacted API key]', message)
+        self.assertNotIn('private-test-key', message)
+        self.assertNotIn('AIzaFakeKey', message)
+
+    def test_provider_error_handles_non_json_response(self):
+        error = urllib.error.HTTPError('https://example.test', 400, 'Bad request', {}, io.BytesIO(b'<html>unavailable</html>'))
+        self.assertIn('No readable error details', provider_error(error))
 
 
 if __name__ == '__main__':
