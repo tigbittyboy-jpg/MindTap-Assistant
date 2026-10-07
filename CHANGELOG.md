@@ -1,5 +1,10 @@
 # Release notes
 
+## v0.5.5.5
+
+- Swap the answer/status card and textbook save progress card, placing answers higher in the assistant.
+- Extension-only layout update; no backend restart required.
+
 ## v0.5.5.4
 
 - Keep one AI answer with relevant textbook excerpts as context.
