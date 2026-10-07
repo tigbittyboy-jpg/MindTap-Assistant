@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.5.2.1
+
+- Added one-click Clear textbook archive; clearing disables auto-save.
+- Reduced the archive limit to 10 MB. Existing larger archives are preserved but cannot accept new sections.
+- Kept Chrome unlimitedStorage permission so quiz history and settings do not compete with the 10 MB archive cap.
+
 ## v0.5.2
 
 - Optional automatic saving of each opened Cengage textbook section after text stabilizes.

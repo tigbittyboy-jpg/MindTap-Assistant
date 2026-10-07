@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.5.2
+# MindTap Assistant — v0.5.2.1
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If the answers disagree, it stops so you can review them.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.2](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.2.zip).
+1. [Download v0.5.2.1](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.2.1.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.2**. The popup badge shows **v0.5.2**.
+Chrome shows version **0.5.2.1**. The popup badge shows **v0.5.2.1**.
 
 ## 5. Use it
 
@@ -99,7 +99,7 @@ The extension does not click a separate **Check Answer** or **Submit** button. H
 
 The status lists the section titles supplied as references. These are search matches, not proof the answer is correct. If nothing matches, the model answers from its own knowledge. Only opened sections are saved, not the whole book. Auto-save works on a visible textbook tab, skips duplicates, and stays enabled between browser sessions until you turn it off. It turns off on a save error, including a full archive; the textbook status displays the error. The extension requests access to ebooks.cengage.com to watch the reader. The Cengage reader’s same-origin iframe-page frame is supported. Pages stored as images or inside inaccessible frames cannot be captured this way.
 
-Chrome’s unlimitedStorage permission allows the archive to exceed the normal extension storage quota. The app checks its own 500 MB limit before adding a section. Saved text stays in this extension's local Chrome storage (up to 500 MB of saved text, with a one-million-character limit per section). It is sent only to your local helper and Ollama. Removing the extension deletes its saved library; reloading the same installed extension preserves it. Section titles are captured where available; page numbers are not yet captured. Use textbook material you are permitted to save for personal study.
+Chrome’s unlimitedStorage permission allows the archive to exceed the normal extension storage quota. The app checks its own 10 MB limit before adding a section. Saved text stays in this extension's local Chrome storage (up to 10 MB of saved text, with a one-million-character limit per section). It is sent only to your local helper and Ollama. Removing the extension deletes its saved library; reloading the same installed extension preserves it. Section titles are captured where available; page numbers are not yet captured. Click **Clear textbook archive** to immediately delete saved sections without removing the extension. Clearing turns auto-save off so the current page does not refill the archive. Reloading this update does not delete an existing archive larger than 10 MB; new sections are blocked until you clear it. Use textbook material you are permitted to save for personal study.
 
 ## Updating to a new version
 

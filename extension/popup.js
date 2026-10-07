@@ -31,3 +31,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.textbookSaveStatus) textbookStatus.textContent = changes.textbookSaveStatus.newValue;
   if (changes.autoSaveTextbook) textbookToggle.checked = changes.autoSaveTextbook.newValue === true;
 });
+
+document.querySelector('#clearTextbook').addEventListener('click', async () => {
+  try {
+    const result = await chrome.runtime.sendMessage({action: 'clearTextbook'});
+    textbookStatus.textContent = result.error || result.message;
+  } catch (error) { textbookStatus.textContent = error.message; }
+});

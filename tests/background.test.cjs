@@ -55,6 +55,9 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
     }});
   vm.runInContext(source, context);
   return {session, local, requests, clicks, finishes,
+    async clear() {
+      return new Promise(resolve => listener({action: 'clearTextbook'}, {id: 'test'}, resolve));
+    },
     async save() {
       return new Promise(resolve => listener({action: 'saveTextbook', tabId: 1}, {id: 'test'}, resolve));
     },
@@ -120,7 +123,7 @@ test('missing Finish stops without analyzing review questions', async () => {
 
 test('saved textbook excerpts are retrieved and supplied with question requests', async () => {
   const app = harness({count: 1});
-  assert.match((await app.save()).message, /500 MB/);
+  assert.match((await app.save()).message, /10 MB/);
   assert.equal(app.local.textbookSections.length, 1);
   assert.match((await app.save()).message, /Already saved/);
   assert.equal(app.local.textbookSections.length, 1);
@@ -133,4 +136,30 @@ test('unrelated library passages are not sent to the model', async () => {
   const app = harness({count: 1, textbookSections: [{title: 'Brazing', text: 'Heat copper tubing near fittings.'}]});
   await app.start();
   assert.equal(app.requests[0].references.length, 0);
+});
+
+test('clearing deletes only textbook archive and disables auto-save', async () => {
+  const app = harness({textbookSections: [{title: 'Tubing', text: 'Copper'}]});
+  app.local.autoSaveTextbook = true;
+  app.local.unrelatedSetting = 'preserve';
+  app.session.runHistory = [{id: 'old'}];
+  assert.match((await app.clear()).message, /cleared/);
+  assert.equal(app.local.textbookSections.length, 0);
+  assert.equal(app.local.autoSaveTextbook, false);
+  assert.equal(app.local.unrelatedSetting, 'preserve');
+  assert.equal(app.session.runHistory[0].id, 'old');
+});
+test('archive over 10 MB rejects new sections without deleting existing data', async () => {
+  const existing = {title: 'Large archive', text: 'x'.repeat(10 * 1024 * 1024)};
+  const app = harness({textbookSections: [existing]});
+  assert.match((await app.save()).error, /10 MB limit/);
+  assert.equal(app.local.textbookSections.length, 1);
+  assert.equal(app.local.textbookSections[0].text, existing.text);
+});
+test('clearing runs after in-flight saves so the cleared archive stays empty', async () => {
+  const app = harness();
+  const save = app.save(); const clear = app.clear();
+  await Promise.all([save, clear]);
+  assert.equal(app.local.textbookSections.length, 0);
+  assert.equal(app.local.autoSaveTextbook, false);
 });

@@ -75,6 +75,15 @@ function saveTextbook(tabId, automatic = false) {
   textbookSaveQueue = pending;
   return pending;
 }
+function clearTextbook() {
+  const pending = textbookSaveQueue.catch(() => {}).then(async () => {
+    await chrome.storage.local.set({autoSaveTextbook: false, textbookSections: [],
+      textbookSaveStatus: 'Textbook archive cleared. Auto-save is off. 0 MB of 10 MB used.'});
+    return {message: 'Textbook archive cleared. Auto-save is off.'};
+  });
+  textbookSaveQueue = pending;
+  return pending;
+}
 async function saveTextbookSection(tabId, automatic) {
   if (automatic && !(await chrome.storage.local.get('autoSaveTextbook')).autoSaveTextbook) return {message: 'Auto-save is off.'};
   const section = await page(tabId, 'textbook');
@@ -83,9 +92,9 @@ async function saveTextbookSection(tabId, automatic) {
   if (textbookSections.some(item => item.text === section.text)) return {message: `Already saved: ${section.title}`};
   const archive = [...textbookSections, section];
   const bytes = new TextEncoder().encode(JSON.stringify(archive)).length;
-  if (bytes > 500 * 1024 * 1024) throw Error('Textbook archive has reached its 500 MB limit.');
+  if (bytes > 10 * 1024 * 1024) throw Error('Textbook archive has reached its 10 MB limit.');
   await chrome.storage.local.set({textbookSections: archive});
-  const message = `Saved: ${section.title}\n${archive.length} section(s) · ${(bytes / (1024 * 1024)).toFixed(2)} MB of 500 MB used.`;
+  const message = `Saved: ${section.title}\n${archive.length} section(s) · ${(bytes / (1024 * 1024)).toFixed(2)} MB of 10 MB used.`;
   await chrome.storage.local.set({textbookSaveStatus: message});
   return automatic ? {message} : report(message);
 }
@@ -186,6 +195,7 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
   }
   (async () => {
     if (request.action === 'stop') { stopped = true; return report('Stop requested.'); }
+    if (request.action === 'clearTextbook') return clearTextbook();
     if (request.action === 'saveTextbook') return saveTextbook(request.tabId);
     if (running) throw Error('Automatic mode is running. Stop it before using manual controls.');
     if (request.action === 'analyze') {

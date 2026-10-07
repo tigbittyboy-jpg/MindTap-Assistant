@@ -34,7 +34,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #90d8ff;outline-offse
 </style>
 </head>
 <body>
-<header><h1>MindTap Assistant</h1><span class="version">v0.5.2</span></header>
+<header><h1>MindTap Assistant</h1><span class="version">v0.5.2.1</span></header>
 <p class="intro">Open a question and start. Your local Ollama model solves the question twice before suggesting an answer.</p>
 <div class="controls" aria-label="Question controls">
 <button id="analyze">Analyze question</button>
@@ -44,7 +44,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #90d8ff;outline-offse
 <label class="auto-control"><input type="checkbox" id="auto"><span>Automatically select &amp; advance</span></label>
 <button id="stop">Stop automatic mode</button>
 </div>
-<button id="saveTextbook" style="width:100%;margin-top:10px">Save textbook section</button>
+<div class="controls" style="margin-top:10px"><button id="saveTextbook">Save textbook section</button><button id="clearTextbook">Clear textbook archive</button></div>
 <label class="auto-control" style="margin-top:10px"><input type="checkbox" id="autoSaveTextbook" style="accent-color:#8f9dff"> Auto-save opened textbook sections</label>
 <p id="textbookStatus" class="note" role="status">Textbook auto-save is off.</p>
 <p class="note">Automatic mode can submit answers and click Review → Finish. AI suggestions may be incorrect. Stops when checks disagree, or on unsupported questions or request errors.</p>
