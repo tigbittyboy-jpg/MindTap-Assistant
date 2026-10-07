@@ -1,9 +1,6 @@
-"""Local Gemini/Ollama gateway. No third-party Python dependencies."""
+"""Local Ollama gateway. No third-party Python dependencies."""
 import json
 import os
-import re
-import socket
-import ssl
 import sys
 import urllib.error
 import urllib.request
@@ -24,13 +21,6 @@ def validate_question(data):
 
 
 OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
-
-
-def selected_provider():
-    provider = os.environ.get('AI_PROVIDER', 'gemini').lower().strip()
-    if provider not in ('gemini', 'ollama'):
-        raise ValueError('AI_PROVIDER must be gemini or ollama.')
-    return provider
 
 
 ANSWER_INSTRUCTIONS = (
@@ -106,120 +96,36 @@ def analyze_ollama(question):
 
 
 def analyze(data):
-    question = validate_question(data)
-    if selected_provider() == 'ollama':
-        return analyze_ollama(question)
-    key = os.environ.get('GEMINI_API_KEY')
-    if not key:
-        raise ValueError('Set GEMINI_API_KEY on the backend machine, then restart the backend.')
-    model = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
-    if not all(c.isalnum() or c in '-._' for c in model):
-        raise ValueError('Invalid model name.')
-    payload = {
-        'system_instruction': {'parts': [{'text': ANSWER_INSTRUCTIONS}]},
-        'contents': [{'role': 'user', 'parts': [{'text': json.dumps(model_question(question))}]}],
-        'generationConfig': {'responseMimeType': 'application/json', 'responseSchema': {
-            'type': 'OBJECT', 'properties': {
-                'answer_text': {'type': 'STRING', 'enum': question['choices']},
-                'index': {'type': 'INTEGER'}, 'confidence': {'type': 'NUMBER'},
-                'explanation': {'type': 'STRING'}},
-            'required': ['index', 'answer_text', 'confidence', 'explanation']}}
-    }
-    request = urllib.request.Request(
-        f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-        data=json.dumps(payload).encode(),
-        headers={'Content-Type': 'application/json', 'x-goog-api-key': key}, method='POST')
-    try:
-        timeout = int(os.environ.get('GEMINI_TIMEOUT_SECONDS', '75'))
-    except ValueError as error:
-        raise ValueError('GEMINI_TIMEOUT_SECONDS must be an integer from 5 to 90.') from error
-    if not 5 <= timeout <= 90:
-        raise ValueError('GEMINI_TIMEOUT_SECONDS must be an integer from 5 to 90.')
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        provider = json.load(response)
-    try:
-        parts = provider['candidates'][0]['content']['parts']
-        result = json.loads(''.join(part.get('text', '') for part in parts))
-        return {**validate_answer(result, question, 'Gemini'), 'provider': 'gemini', 'model': model}
-    except (KeyError, IndexError, TypeError, ValueError) as error:
-        raise ValueError('Gemini returned an unsupported or blocked response.') from error
+    return analyze_ollama(validate_question(data))
 
 
 def provider_error(error):
-    if selected_provider() == 'ollama':
-        if error.code == 404:
-            return 'Ollama model not found. Run ollama pull ' + os.environ.get('OLLAMA_MODEL', 'qwen3:8b')
-        return f'Ollama returned HTTP {error.code}. Check the Ollama app and model installation.'
-    fallback = f'Gemini returned HTTP {error.code}. No readable error details were provided.'
-    try:
-        body = json.loads(error.read(65536))
-        details = body.get('error', {})
-        message = details.get('message')
-        status = details.get('status', '')
-        if not isinstance(message, str) or not message.strip():
-            return fallback
-        if not isinstance(status, str):
-            status = ''
-        # Do not surface credentials, even if the provider includes them in its explanation.
-        message = (status + ': ' if status else '') + message
-        key = os.environ.get('GEMINI_API_KEY', '')
-        if key:
-            message = message.replace(key, '[redacted API key]')
-        message = re.sub(r'AIza[A-Za-z0-9_-]+', '[redacted API key]', message)
-        message = re.sub(r'(?i)([?&](?:key|api_key|token)=)[^\s&"<>]+', r'\1[redacted]', message)
-        return f'Gemini HTTP {error.code}: {message[:1500]}'
-    except (ValueError, AttributeError, TypeError, OSError):
-        return fallback
+    if error.code == 404:
+        return 'Ollama model not found. Run ollama pull ' + os.environ.get('OLLAMA_MODEL', 'qwen3:8b')
+    return f'Ollama returned HTTP {error.code}. Check the Ollama app and model installation.'
 
 
 def connection_error(error):
-    if selected_provider() == 'ollama':
-        reason = error.reason if isinstance(error, urllib.error.URLError) else error
-        if isinstance(reason, TimeoutError):
-            return 'Local Ollama generation timed out. Close memory-heavy apps, warm the model with ollama run qwen3:8b, and retry.'
-        return 'Could not connect to local Ollama on port 11434. Open the Ollama app, or run ollama serve.'
     reason = error.reason if isinstance(error, urllib.error.URLError) else error
-    if isinstance(reason, ssl.SSLCertVerificationError):
-        return ('Python could not verify Gemini’s HTTPS certificate. On macOS with Python from '
-                'python.org, open Applications → Python 3.x → Install Certificates.command, '
-                'then restart the backend. See README for other Python installations.')
-    if isinstance(reason, socket.gaierror):
-        return 'Could not resolve Gemini’s hostname. Check DNS, Internet access, VPN, or proxy settings.'
     if isinstance(reason, TimeoutError):
-        return 'Gemini did not respond before the timeout. This can be caused by model demand or network delays. Retry later, or check your VPN, proxy, and connection.'
-    if isinstance(reason, ssl.SSLError):
-        return 'TLS connection to Gemini failed. Check Python certificates and any HTTPS-inspecting proxy.'
-    tunnel = re.search(r'Tunnel connection failed: (\d{3})', str(reason))
-    if tunnel:
-        return f'Your network proxy rejected the Gemini connection (HTTP {tunnel.group(1)}). Check proxy or firewall access to generativelanguage.googleapis.com.'
-    return f'Could not connect to Gemini ({type(reason).__name__}). Check network, VPN, proxy, or firewall access to generativelanguage.googleapis.com.'
+        return 'Local Ollama generation timed out. Close memory-heavy apps, warm the model with ollama run ' + os.environ.get('OLLAMA_MODEL', 'qwen3:8b') + ', and retry.'
+    return 'Could not connect to local Ollama on port 11434. Open the Ollama app, or run ollama serve.'
 
 
 def check_connection():
-    if selected_provider() == 'ollama':
-        try:
-            models = ollama_json('/api/tags').get('models', [])
-            model = os.environ.get('OLLAMA_MODEL', 'qwen3:8b')
-            if not any(item.get('name') == model or item.get('model') == model for item in models):
-                print(f'Ollama is running, but {model} is not installed. Run ollama pull {model}.')
-                return 1
-            print(f'Local Ollama connection succeeded; {model} is installed. Generation is not tested by this check.')
-            return 0
-        except urllib.error.HTTPError as error:
-            print(provider_error(error))
-        except (urllib.error.URLError, TimeoutError) as error:
-            print(connection_error(error))
-        return 1
-    # No key or question is sent. Any HTTP response proves the HTTPS connection succeeded.
     try:
-        with urllib.request.urlopen('https://generativelanguage.googleapis.com/v1beta/models', timeout=15) as response:
-            print(f'Gemini HTTPS connection succeeded (HTTP {response.status}).')
+        models = ollama_json('/api/tags').get('models', [])
+        model = os.environ.get('OLLAMA_MODEL', 'qwen3:8b')
+        if not any(item.get('name') == model or item.get('model') == model for item in models):
+            print(f'Ollama is running, but {model} is not installed. Run ollama pull {model}.')
+            return 1
+        print(f'Local Ollama connection succeeded; {model} is installed. Generation is not tested by this check.')
+        return 0
     except urllib.error.HTTPError as error:
-        print(f'Gemini HTTPS connection succeeded (HTTP {error.code}; this check sends no API key).')
-    except (urllib.error.URLError, TimeoutError, ssl.SSLError) as error:
+        print(provider_error(error))
+    except (urllib.error.URLError, TimeoutError) as error:
         print(connection_error(error))
-        return 1
-    return 0
+    return 1
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -255,7 +161,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.origin_allowed():
             return self.reply(403, {'error': 'Origin not allowed.'})
         if self.path == '/health':
-            return self.reply(200, {'status': 'ok', 'provider': selected_provider(), 'model': os.environ.get('OLLAMA_MODEL', 'qwen3:8b') if selected_provider() == 'ollama' else os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash'), 'api_key_configured': bool(os.environ.get('GEMINI_API_KEY'))})
+            return self.reply(200, {'status': 'ok', 'provider': 'ollama', 'model': os.environ.get('OLLAMA_MODEL', 'qwen3:8b')})
         self.reply(404, {'error': 'Not found.'})
 
     def do_POST(self):
@@ -275,7 +181,7 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(400, {'error': str(error)})
         except urllib.error.HTTPError as error:
             self.reply(502, {'error': provider_error(error)})
-        except (urllib.error.URLError, TimeoutError, ssl.SSLError) as error:
+        except (urllib.error.URLError, TimeoutError) as error:
             self.reply(502, {'error': connection_error(error)})
 
 
@@ -283,7 +189,7 @@ if __name__ == '__main__':
     if '--check-connection' in sys.argv:
         sys.exit(check_connection())
     server = ThreadingHTTPServer(('127.0.0.1', 8765), Handler)
-    print(f'MindTap backend listening on 127.0.0.1:8765 (provider: {selected_provider()})', flush=True)
+    print(f'MindTap backend listening on 127.0.0.1:8765 (provider: ollama)', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

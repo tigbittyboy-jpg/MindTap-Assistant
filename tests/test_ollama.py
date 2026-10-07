@@ -43,7 +43,7 @@ class OllamaIntegrationTests(unittest.TestCase):
         local = f'http://127.0.0.1:{self.model_server.server_port}'
         self.addCleanup(patch.stopall)
         patch.object(server, 'OLLAMA_BASE_URL', local).start()
-        patch.dict(os.environ, {'AI_PROVIDER': 'ollama', 'OLLAMA_MODEL': 'qwen3:8b'}, clear=True).start()
+        patch.dict(os.environ, {'OLLAMA_MODEL': 'qwen3:8b'}, clear=True).start()
         self.client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
     def test_http_gateway_to_local_model_without_key(self):
@@ -68,7 +68,7 @@ class OllamaIntegrationTests(unittest.TestCase):
             health = json.load(response)
         self.assertEqual(health['provider'], 'ollama')
         self.assertEqual(health['model'], 'qwen3:8b')
-        self.assertFalse(health['api_key_configured'])
+        self.assertNotIn('api_key_configured', health)
 
     @patch('builtins.print')
     def test_connection_check_verifies_installed_model(self, output):

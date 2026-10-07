@@ -1,12 +1,8 @@
-import io
-import json
 import os
-import socket
-import ssl
 import urllib.error
 import unittest
 from unittest.mock import patch
-from backend.server import analyze, validate_question, connection_error, check_connection, provider_error
+from backend.server import analyze, validate_question, validate_answer, connection_error, check_connection, provider_error
 
 
 class BackendTests(unittest.TestCase):
@@ -16,70 +12,52 @@ class BackendTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_question(data)
 
-    @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder', 'GEMINI_TIMEOUT_SECONDS': '75'})
-    def test_provider_contract(self):
-        provider = {'candidates': [{'content': {'parts': [{'text': json.dumps(
-            {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': 'Two plus two is four.'})}]}}]}
-        with patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(provider).encode())) as fetch:
-            self.assertEqual(analyze({'prompt': '2+2?', 'choices': ['3', '4']})['index'], 1)
-            self.assertEqual(fetch.call_args.kwargs['timeout'], 75)
-            request = fetch.call_args.args[0]
-            self.assertEqual(request.get_header('X-goog-api-key'), 'test-placeholder')
-            self.assertNotIn('test-placeholder', request.full_url)
-            self.assertEqual(json.loads(request.data)['generationConfig']['responseMimeType'], 'application/json')
-
-    @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder'})
     def test_invalid_answer_rejected(self):
+        question = {'prompt': '2+2?', 'choices': ['3', '4']}
         for answer in [{'index': 99, 'answer_text': '3', 'confidence': .99, 'explanation': 'x'},
                        {'index': True, 'answer_text': '3', 'confidence': .99, 'explanation': 'x'},
                        {'index': 0, 'answer_text': '3', 'confidence': 2, 'explanation': 'x'}]:
-            provider = {'candidates': [{'content': {'parts': [{'text': json.dumps(answer)}]}}]}
-            with patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(provider).encode())):
-                with self.assertRaises(ValueError):
-                    analyze({'prompt': '2+2?', 'choices': ['3', '4']})
+            with self.assertRaises(ValueError):
+                validate_answer(answer, question, 'Ollama')
 
     @patch.dict(os.environ, {}, clear=True)
-    def test_missing_key(self):
-        with self.assertRaisesRegex(ValueError, 'GEMINI_API_KEY'):
-            analyze({'prompt': '2+2?', 'choices': ['3', '4']})
-
+    @patch('backend.server.ollama_json')
+    def test_default_uses_local_model_without_credentials(self, fetch):
+        fetch.return_value = {'message': {'content': '{"index":1,"answer_text":"4","confidence":0.95,"explanation":"2+2=4"}'}}
+        answer = analyze({'prompt': '2+2?', 'choices': ['3', '4']})
+        self.assertEqual(answer['provider'], 'ollama')
+        self.assertEqual(answer['model'], 'qwen3:8b')
+        self.assertEqual(fetch.call_args.args[0], '/api/chat')
+        self.assertEqual(fetch.call_args.args[2], 90)
 
     def test_connection_errors_are_specific(self):
-        cases = [(ssl.SSLCertVerificationError(1, 'certificate verify failed'), 'Install Certificates.command'),
-                 (socket.gaierror(-2, 'name not known'), 'hostname'),
-                 (TimeoutError(), 'timeout'), (ssl.SSLError(), 'TLS')]
-        for reason, expected in cases:
-            self.assertIn(expected, connection_error(urllib.error.URLError(reason)))
-        self.assertNotIn('secret-placeholder', connection_error(urllib.error.URLError('secret-placeholder')))
+        self.assertIn('timed out', connection_error(urllib.error.URLError(TimeoutError())))
+        self.assertIn('port 11434', connection_error(urllib.error.URLError('connection refused')))
 
-    @patch('urllib.request.urlopen', side_effect=urllib.error.HTTPError('https://example.test', 403, 'Forbidden', {}, None))
-    @patch('builtins.print')
-    def test_diagnostic_accepts_http_response_without_api_key(self, output, fetch):
-        self.assertEqual(check_connection(), 0)
-        self.assertIn('sends no API key', output.call_args.args[0])
+    def test_provider_error_explains_missing_model(self):
+        error = urllib.error.HTTPError('http://localhost', 404, 'Not found', {}, None)
+        self.assertIn('ollama pull', provider_error(error))
+        error.code = 500
+        self.assertIn('HTTP 500', provider_error(error))
 
-
-    @patch.dict(os.environ, {'GEMINI_API_KEY': 'private-test-key'})
-    def test_provider_error_explanation_redacts_key(self):
-        body = {'error': {'status': 'INVALID_ARGUMENT', 'message': 'Invalid API key private-test-key and AIzaFakeKey123456.'}}
-        error = urllib.error.HTTPError('https://example.test', 400, 'Bad request', {}, io.BytesIO(json.dumps(body).encode()))
-        message = provider_error(error)
-        self.assertIn('INVALID_ARGUMENT', message)
-        self.assertIn('[redacted API key]', message)
-        self.assertNotIn('private-test-key', message)
-        self.assertNotIn('AIzaFakeKey', message)
-
-    def test_provider_error_handles_non_json_response(self):
-        error = urllib.error.HTTPError('https://example.test', 400, 'Bad request', {}, io.BytesIO(b'<html>unavailable</html>'))
-        self.assertIn('No readable error details', provider_error(error))
-
-
-    @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder', 'GEMINI_TIMEOUT_SECONDS': '0'})
-    @patch('urllib.request.urlopen')
+    @patch.dict(os.environ, {'OLLAMA_TIMEOUT_SECONDS': '0'})
+    @patch('backend.server.ollama_json')
     def test_invalid_timeout_rejected_before_request(self, fetch):
-        with self.assertRaisesRegex(ValueError, 'GEMINI_TIMEOUT_SECONDS'):
+        with self.assertRaisesRegex(ValueError, 'OLLAMA_TIMEOUT_SECONDS'):
             analyze({'prompt': '2+2?', 'choices': ['3', '4']})
         fetch.assert_not_called()
+
+    @patch('backend.server.ollama_json', return_value={'models': []})
+    @patch('builtins.print')
+    def test_connection_check_rejects_missing_model(self, output, fetch):
+        self.assertEqual(check_connection(), 1)
+        self.assertIn('not installed', output.call_args.args[0])
+
+    @patch('backend.server.ollama_json', side_effect=urllib.error.URLError('connection refused'))
+    @patch('builtins.print')
+    def test_connection_check_rejects_unavailable_service(self, output, fetch):
+        self.assertEqual(check_connection(), 1)
+        self.assertIn('port 11434', output.call_args.args[0])
 
 
 if __name__ == '__main__':
