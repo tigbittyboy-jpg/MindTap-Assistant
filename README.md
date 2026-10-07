@@ -4,7 +4,7 @@ A Chrome extension that reads a multiple-choice question and asks a local AI mod
 
 The model assumes stationary residential and light commercial HVAC, refrigeration, and heat pumps. Automotive context applies only when the question explicitly calls for it.
 
-The AI can still be wrong, even with textbook references. Use it where study assistance is allowed.
+The AI can still be wrong, even with textbook references. 
 
 ## What you need
 
