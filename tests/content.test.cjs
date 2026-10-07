@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 6);
+  assert.equal(window.mindtapAssistant.version, 7);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -95,4 +95,33 @@ test('deduplicates role wrappers and verifies the currently selected answer', ()
   assert.equal(helper.verify(data.fingerprint, 1).text, '4');
   window.document.querySelector('input').click();
   assert.throws(() => helper.verify(data.fingerprint, 1), /does not match/);
+});
+
+
+test('reads sibling answer text outside empty labels and icon wrappers', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' +
+    '<div><span><input id="a" type="radio" name="q" aria-label="Select answer"></span><label for="a"></label><div>3</div></div>' +
+    '<div><span><input id="b" type="radio" name="q" aria-label="Select answer"></span><label for="b"></label><div>4</div></div></fieldset>');
+  const data = window.mindtapAssistant.read();
+  assert.equal(data.choices.join(','), '3,4');
+  assert.equal(data.prompt, '2 + 2?');
+  window.mindtapAssistant.apply(data.fingerprint, 1);
+  assert.equal(window.mindtapAssistant.verify(data.fingerprint, 1).text, '4');
+});
+
+test('ignores a shared aria question label when reading individual answer rows', () => {
+  const window = fixture('<fieldset><legend id="question">2 + 2?</legend>' +
+    '<div><input type="radio" name="q" aria-labelledby="question"><span>3</span></div>' +
+    '<div><input type="radio" name="q" aria-labelledby="question"><span>4</span></div></fieldset>');
+  const data = window.mindtapAssistant.read();
+  assert.equal(data.choices.join(','), '3,4');
+  assert.equal(data.prompt, '2 + 2?');
+});
+
+test('refuses unreadable or duplicate choices without using the shared question container', () => {
+  for (const answers of ['<input type="radio" name="q"><input type="radio" name="q">',
+    '<div><input type="radio" name="q">Same</div><div><input type="radio" name="q">Same</div>']) {
+    const window = fixture('<fieldset><legend>2 + 2?</legend>' + answers + '</fieldset>');
+    assert.throws(() => window.mindtapAssistant.read(), /distinct answer labels/);
+  }
 });

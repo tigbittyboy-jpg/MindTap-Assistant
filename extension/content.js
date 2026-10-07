@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 6) return;
+  if (globalThis.mindtapAssistant?.version === 7) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
@@ -49,18 +49,34 @@
     if (groups.size !== 1) throw Error('Expected one visible multiple-choice question. Open a single question.');
     const controls = [...groups.values()][0];
     if (controls.length < 2 || controls.length > 12) throw Error('Unsupported answer choices.');
+    const answerNodes = new Set();
     const choices = controls.map(input => {
-      const labelled = (input.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean).map(id => text(document.getElementById(id))).join(' ');
-      const labels = input.labels ? [...input.labels].map(label => text(label)).join(' ') : '';
-      return labels || labelled || input.getAttribute('aria-label') || text(input.closest('label')) || text(input.parentElement);
+      const ownLabels = [...(input.labels || [])].filter(label =>
+        !controls.some(other => other !== input && label.contains(other)));
+      const labelledNodes = (input.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean)
+        .map(id => document.getElementById(id)).filter(Boolean)
+        .filter(node => !controls.some(other => other !== input &&
+          (node.contains(other) || (other.getAttribute('aria-labelledby') || '').split(/\s+/).includes(node.id))));
+      // Custom radios often have an empty label or an icon-only parent. Walk only
+      // within this answer's row; never read an ancestor containing other choices.
+      let row = input;
+      let rowText = text(row);
+      for (let parent = input.parentElement; parent && parent !== document.body && parent !== document.documentElement;
+           parent = parent.parentElement) {
+        if (controls.some(other => other !== input && parent.contains(other))) break;
+        row = parent;
+        rowText = text(row);
+        if (rowText) break;
+      }
+      ownLabels.forEach(label => answerNodes.add(label));
+      labelledNodes.forEach(node => answerNodes.add(node));
+      answerNodes.add(row);
+      answerNodes.add(input);
+      const labels = ownLabels.map(label => text(label)).filter(Boolean).join(' ');
+      const labelled = labelledNodes.map(node => text(node)).filter(Boolean).join(' ');
+      return labels || labelled || rowText || input.getAttribute('aria-label') || '';
     });
     if (choices.some(choice => !choice) || new Set(choices).size !== choices.length) throw Error('Could not read distinct answer labels.');
-    const answerNodes = new Set();
-    controls.forEach(control => {
-      if (control.labels?.length) [...control.labels].forEach(label => answerNodes.add(label));
-      else answerNodes.add(control.closest('label,[role=radio]') || control.parentElement);
-      answerNodes.add(control);
-    });
     let container = controls[0].closest('fieldset,[role=radiogroup]') || controls[0].parentElement;
     while (container.parentElement && !controls.every(input => container.contains(input))) container = container.parentElement;
     // Prefer explicit question elements; answer controls can be deeply nested.
@@ -93,7 +109,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 6,
+    version: 7,
     read() { const {controls, ...data} = question(); return data; },
     apply(expected, index) {
       const data = question();
