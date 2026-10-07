@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MindTap Study Assistant",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Review AI suggestions for visible multiple-choice questions in MindTap.",
   "permissions": [
     "activeTab",
@@ -17,5 +17,5 @@
   "background": {
     "service_worker": "background.js"
   },
-  "version_name": "v.0.3.5"
+  "version_name": "v.0.3.6"
 }
