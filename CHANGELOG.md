@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.5.5.2
+
+- Accept control messages from the detached assistant extension page.
+- Continue rejecting commands from ordinary webpage tabs.
+- Show recovery instructions when a reply is missing instead of an undefined-property error.
+
 ## v0.5.5.1
 
 - Replaced automatic-mode checkbox and Stop button with a single On/Off switch.

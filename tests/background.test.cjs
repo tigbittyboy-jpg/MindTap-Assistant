@@ -14,7 +14,7 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
   });
   const chrome = {
     storage: {local: storage(local), session: storage(session)},
-    runtime: {id: 'test', onMessage: {addListener(fn) { listener = fn; }}},
+    runtime: {id: 'test', getURL: path => 'chrome-extension://test/' + path, onMessage: {addListener(fn) { listener = fn; }}},
     scripting: {async executeScript(request) {
       if (request.files) return [];
       const [operation, args] = request.args;
@@ -55,6 +55,12 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
     }});
   vm.runInContext(source, context);
   return {session, local, requests, clicks, finishes,
+    async detachedState() {
+      return new Promise(resolve => listener({action: 'getAutomationState'}, {id: 'test', tab: {id: 99}, url: 'chrome-extension://test/popup.html?sourceWindow=7'}, resolve));
+    },
+    rejectedWebpage() {
+      return listener({action: 'clearTextbook'}, {id: 'test', tab: {id: 1}, frameId: 0, url: 'https://example.test/popup.html'}, () => {throw Error('Must not reply');});
+    },
     async clear() {
       return new Promise(resolve => listener({action: 'clearTextbook'}, {id: 'test'}, resolve));
     },
@@ -177,4 +183,10 @@ test('invalid tie-breaker evidence stops before automatic selection', async () =
   await app.start();
   assert.equal(app.clicks.length, 0);
   assert.match(app.local.status, /evidence could not be verified/);
+});
+
+test('detached extension tab receives control replies while ordinary webpages remain blocked', async () => {
+  const app = harness();
+  assert.equal((await app.detachedState()).active, false);
+  assert.equal(app.rejectedWebpage(), undefined);
 });

@@ -68,3 +68,16 @@ test('one automation switch starts, stops without a target tab, and syncs comple
  app.change({automationActive:{newValue:false}});assert.equal(toggle.checked,false);
  assert.equal(app.w.document.querySelector('#automationLabel').textContent,'Off');
 });
+
+test('missing detached-window reply shows recovery instructions instead of a TypeError',async()=>{
+ const app=await harness('?sourceWindow=7');
+ app.w.chrome.runtime.sendMessage=async()=>undefined;
+ await app.click('analyze');
+ assert.match(app.w.document.querySelector('#status').textContent,/No reply from the extension/);
+ assert.ok(!app.w.document.querySelector('#status').textContent.includes("reading 'error'"));
+ await app.click('clearTextbook');
+ assert.match(app.w.document.querySelector('#textbookStatus').textContent,/Reload it in Chrome/);
+ const toggle=app.w.document.querySelector('#auto');toggle.checked=true;
+ toggle.dispatchEvent(new app.w.Event('change'));await new Promise(setImmediate);
+ assert.equal(toggle.checked,false);assert.equal(toggle.disabled,false);
+});

@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.5.5.1
+# MindTap Assistant — v0.5.5.2
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If answers disagree, it tries a textbook-based tie-breaker using saved excerpts. It pauses if there is no usable supporting evidence.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.5.1](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.1.zip).
+1. [Download v0.5.5.2](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.2.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.5.1**. The popup badge shows **v0.5.5.1**.
+Chrome shows version **0.5.5.2**. The popup badge shows **v0.5.5.2**.
 
 ## 5. Use it
 

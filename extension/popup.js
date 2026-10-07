@@ -21,10 +21,17 @@ windowButton.addEventListener('click', async () => {
     window.close();
   } catch (error) { status.textContent = error.message; }
 });
+async function sendCommand(request) {
+  const result = await chrome.runtime.sendMessage(request);
+  if (!result || typeof result !== 'object') {
+    throw Error('No reply from the extension. Reload it in Chrome, then close and reopen this assistant window.');
+  }
+  return result;
+}
 async function command(action) {
   try {
     const tab = await targetTab();
-    const result = await chrome.runtime.sendMessage({action, tabId: tab.id,
+    const result = await sendCommand({action, tabId: tab.id,
       auto: false});
     status.textContent = result.error || result.message;
   } catch (error) { status.textContent = error.message; }
@@ -42,7 +49,7 @@ function showAutomation(active) {
   automationLabel.textContent = active ? 'On' : 'Off';
 }
 async function refreshAutomation() {
-  const result = await chrome.runtime.sendMessage({action: 'getAutomationState'});
+  const result = await sendCommand({action: 'getAutomationState'});
   showAutomation(result.active);
 }
 void refreshAutomation().catch(error => { status.textContent = error.message; });
@@ -51,10 +58,9 @@ automationToggle.addEventListener('change', async () => {
   try {
     const enabled = automationToggle.checked;
     const request = enabled ? {action: 'analyze', tabId: (await targetTab()).id, auto: true} : {action: 'stop'};
-    const result = await chrome.runtime.sendMessage(request);
+    const result = await sendCommand(request);
     status.textContent = result.error || result.message;
-    if (result.error) await refreshAutomation();
-    else await refreshAutomation();
+    await refreshAutomation();
   } catch (error) {
     showAutomation(false);
     status.textContent = error.message;
@@ -90,7 +96,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 document.querySelector('#clearTextbook').addEventListener('click', async () => {
   try {
-    const result = await chrome.runtime.sendMessage({action: 'clearTextbook'});
+    const result = await sendCommand({action: 'clearTextbook'});
     textbookStatus.textContent = result.error || result.message;
   } catch (error) { textbookStatus.textContent = error.message; }
 });

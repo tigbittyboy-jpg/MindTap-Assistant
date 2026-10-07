@@ -197,7 +197,8 @@ async function automate(tabId) {
 }
 chrome.runtime.onMessage.addListener((request, sender, reply) => {
   if (sender.id !== chrome.runtime.id) return;
-  if (sender.tab) {
+  const assistantPage = (sender.url || '').split('?')[0] === chrome.runtime.getURL('popup.html');
+  if (sender.tab && !assistantPage) {
     if (request.action !== 'autoSaveTextbook' || sender.frameId !== 0 ||
         !/^https:\/\/ebooks\.cengage\.com\//.test(sender.url || '')) return;
     saveTextbook(sender.tab.id, true).then(reply).catch(async error => {
