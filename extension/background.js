@@ -16,7 +16,7 @@ async function page(tabId, operation, args = []) {
 async function analyze(tabId, questionOverride = '') {
   suggestions.delete(tabId);
   const data = await page(tabId, 'read', [questionOverride]);
-  await report('Waiting for Gemini… This can take up to 90 seconds.');
+  await report('Waiting for AI… This can take up to 90 seconds.');
   const response = await fetch('http://127.0.0.1:8765/analyze', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({prompt: data.prompt, choices: data.choices}), signal: AbortSignal.timeout(105000)

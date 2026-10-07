@@ -1,6 +1,6 @@
 # MindTap Study Assistant
 
-A Chrome Manifest V3 extension with a local Python gateway to Gemini. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances up to 25 questions, stopping below 90% model-reported confidence. Confidence is an AI estimate, not a guarantee of correctness.
+A Chrome Manifest V3 extension with a local Python gateway to Gemini or local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances up to 25 questions, stopping below 90% model-reported confidence. Confidence is an AI estimate, not a guarantee of correctness.
 
 ## Install
 
@@ -12,7 +12,22 @@ A Chrome Manifest V3 extension with a local Python gateway to Gemini. It reads o
 6. Open a MindTap question and click the extension. Use **Analyze question**, review the suggestion, then **Select suggested answer**. **Click Next** advances when exactly one recognizable Next or Continue control is present.
 7. To automate, enable **Automatically select and advance**, set the question limit, then click **Analyze question**. Reopen the popup to view status or stop. Closing the popup does not stop the run. Stop takes effect before the next action; a click already in progress cannot be undone.
 
-Question text and choices are sent to Google Gemini when you analyze. API usage may incur charges. The backend does not save questions or credentials. Use it where assistance is permitted.
+With the Gemini provider, question text and choices are sent to Google Gemini when you analyze. With Ollama, the backend sends them only to your local Ollama service; no cloud API key is used. API usage may incur charges. The backend does not save questions or credentials. Use it where assistance is permitted.
+
+## Local Ollama (no cloud quota)
+
+Install and open Ollama on the same computer as Chrome, then run `ollama pull qwen3:8b` to download the model (or `ollama run qwen3:8b` to download and try a chat). Keep the Ollama app/service running. In a separate terminal, from this repository:
+
+```bash
+export AI_PROVIDER="ollama"
+export OLLAMA_MODEL="qwen3:8b"
+python3 backend/server.py --check-connection
+python3 backend/server.py
+```
+
+No Gemini key or TLS certificate configuration is required for local Ollama. Stop any previous backend before starting this one, since port 8765 must be free. The existing extension works with either provider. Optional `OLLAMA_TIMEOUT_SECONDS` accepts 5–90 seconds (default 90). First generation may be slower while the model loads; the backend requests non-streaming structured JSON with thinking disabled. Local requests bypass HTTP proxy settings. Ollama must be listening at `127.0.0.1:11434`. Close memory-heavy applications if generation is slow. Changing to another installed model is supported through `OLLAMA_MODEL`; model accuracy and speed vary.
+
+The connection check verifies that Ollama responds and the selected model is installed; it does not validate real model inference. Automated integration tests use a simulated Ollama HTTP server. Qwen3 generation on your Mac still needs a live test. Local inference has no cloud quota, but is limited by your computer’s resources and can give incorrect answers.
 
 ## Supported scope and limitations
 
