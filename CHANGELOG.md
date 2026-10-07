@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.5.5.4
+
+- Keep one AI answer with relevant textbook excerpts as context.
+- Remove textbook-only generation and mandatory quote matching that blocked valid answers.
+- Retain answer validation, short explanations, and faster textbook capture.
+- Update extension and backend, then restart the backend.
+
 ## v0.5.5.3
 
 - Remove independent double checking: one model request per question.

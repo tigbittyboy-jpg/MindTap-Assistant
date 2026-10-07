@@ -104,7 +104,7 @@ test('unsupported textbook answer prevents selection and advancement', async () 
 test('older double-check backend cannot trigger automatic selection', async () => {
   const app = harness({unchecked: true}); await app.start();
   assert.equal(app.clicks.length, 0);
-  assert.match(app.local.status, /Restart the v0.5.5.3 backend/);
+  assert.match(app.local.status, /Restart the v0.5.5.4 backend/);
 });
 
 test('last answer opens Review and clicks Finish exactly once without reanalysis', async () => {
@@ -175,14 +175,14 @@ test('textbook-supported answer continues automatic selection and advancement', 
   const app = harness({count: 1, bookTie: true, textbookSections: [{title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}]});
   await app.start();
   assert.equal(app.clicks.length, 1);
-  assert.equal(app.session.runHistory[0].textbookResolved, true);
+  assert.equal(app.requests[0].references.length, 1);
   assert.equal(app.session.runHistory[0].selectionVerified, true);
 });
-test('invalid textbook evidence stops before automatic selection', async () => {
+test('nonverbatim quote metadata does not block a valid single AI answer', async () => {
   const app = harness({count: 1, bookTie: true, badQuote: true, textbookSections: [{title: 'Numbers', text: 'Question number choices: 2 plus 2 equals 4.'}]});
   await app.start();
-  assert.equal(app.clicks.length, 0);
-  assert.match(app.local.status, /evidence could not be verified/);
+  assert.equal(app.clicks.length, 1);
+  assert.equal(app.session.runHistory[0].selectionVerified, true);
 });
 
 test('detached extension tab receives control replies while ordinary webpages remain blocked', async () => {

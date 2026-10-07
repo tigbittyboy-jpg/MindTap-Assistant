@@ -119,27 +119,20 @@ async function analyze(tabId) {
     });
     answer = await response.json();
     if (!response.ok) throw Error(answer.error || 'Backend request failed.');
-    if (answer.analysis_mode !== 'single_pass') throw Error('Restart the v0.5.5.3 backend to use single-pass answers.');
+    if (answer.analysis_mode !== 'single_pass') throw Error('Restart the v0.5.5.4 backend to use single-pass answers.');
     if (references.length && answer.reference_count !== references.length) throw Error('Textbook context was not accepted. Restart the v0.5 backend.');
     if (!Number.isInteger(answer.index) || answer.index < 0 || answer.index >= data.choices.length ||
         !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
     if (answer.answer_text !== undefined && answer.answer_text !== data.choices[answer.index]) throw Error('AI answer text and index disagree.');
-    if (answer.textbook_resolved === true) {
-      const source = references[answer.evidence_source_index];
-      if (!source || source.source !== answer.evidence_source || typeof answer.evidence_quote !== 'string' ||
-          answer.evidence_quote.trim().length < 20 || !source.text.replace(/\s+/g, ' ').includes(answer.evidence_quote.replace(/\s+/g, ' ').trim())) {
-        throw Error('Textbook reference evidence could not be verified. Review manually.');
-      }
-    }
     await recordHistory({id: historyId, suggestedIndex: answer.index, suggestedText: data.choices[answer.index], confidence: answer.confidence,
-      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, textbookResolved: answer.textbook_resolved, evidenceQuote: answer.evidence_quote});
+      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking});
   } catch (error) {
     await recordHistory({id: historyId, error: error.message});
     throw error;
   }
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\n${answer.textbook_resolved ? "Textbook reference: " + answer.evidence_source + "\n“" + answer.evidence_quote + "”" : ""}\n\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
+  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
   return suggestion;
 }
 async function automate(tabId) {

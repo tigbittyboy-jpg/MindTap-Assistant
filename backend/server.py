@@ -74,7 +74,7 @@ def ollama_json(path, payload=None, timeout=10):
         return json.load(response)
 
 
-def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS, textbook_only=False):
+def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS):
     schema = {'type': 'object', 'properties': {
         'explanation': {'type': 'string', 'maxLength': 360},
         'answer_text': {'type': 'string', 'enum': question['choices']},
@@ -82,12 +82,6 @@ def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS, textbook_only=Fal
         'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1},
         },
         'required': ['index', 'answer_text', 'confidence', 'explanation'], 'additionalProperties': False}
-    if textbook_only:
-        schema['properties'].update({
-            'supported': {'type': 'boolean'},
-            'source_index': {'type': 'integer', 'minimum': 0, 'maximum': len(question['references']) - 1},
-            'evidence_quote': {'type': 'string', 'maxLength': 300}})
-        schema['required'] += ['supported', 'source_index', 'evidence_quote']
     thinking = os.environ.get('OLLAMA_THINK', 'false').lower().strip()
     if thinking not in ('true', 'false'):
         raise ValueError('OLLAMA_THINK must be true or false.')
@@ -110,33 +104,13 @@ def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS, textbook_only=Fal
         raise ValueError('Ollama did not return a complete JSON answer. Try a shorter question.') from error
     answer = {**validate_answer(result, question, 'Ollama'), 'provider': 'ollama',
               'model': payload['model'], 'thinking': thinking == 'true'}
-    if textbook_only:
-        source_index = result.get('source_index')
-        quote = result.get('evidence_quote')
-        if (result.get('supported') is not True or type(source_index) is not int
-                or not 0 <= source_index < len(question['references'])
-                or not isinstance(quote, str) or not 20 <= len(quote.strip()) <= 300):
-            raise ValueError('Textbook reference could not support an answer. Review manually.')
-        reference = question['references'][source_index]
-        if ' '.join(quote.split()) not in ' '.join(reference['text'].split()):
-            raise ValueError('Textbook reference quoted text not present in the excerpts. Review manually.')
-        answer.update(evidence_source=reference['source'], evidence_quote=quote.strip(),
-                      evidence_source_index=source_index)
     return answer
 
 
 def analyze(data):
     question = validate_question(data)
-    has_references = bool(question['references'])
-    instructions = ANSWER_INSTRUCTIONS
-    if has_references:
-        instructions += (
-            ' Answer using ONLY the supplied textbook excerpts. Do not fill missing facts from memory. '
-            'Set supported=true only when a passage directly supports the answer for the exact application. '
-            'Otherwise set supported=false. Return source_index as the zero-based excerpt position '
-            'and evidence_quote as a verbatim supporting quote of 20–300 characters.')
-    answer = analyze_ollama(question, instructions, textbook_only=has_references)
-    return {**answer, 'analysis_mode': 'single_pass', 'textbook_resolved': has_references,
+    answer = analyze_ollama(question)
+    return {**answer, 'analysis_mode': 'single_pass',
             'reference_count': len(question['references'])}
 
 

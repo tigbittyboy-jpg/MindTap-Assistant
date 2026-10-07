@@ -66,7 +66,7 @@ class BackendTests(unittest.TestCase):
         solve.assert_called_once()
         self.assertEqual(answer['confidence'], .95)
         self.assertEqual(answer['analysis_mode'], 'single_pass')
-        self.assertFalse(answer['textbook_resolved'])
+        self.assertEqual(answer['reference_count'], 0)
 
 
 if __name__ == '__main__':

@@ -25,8 +25,6 @@ class OllamaIntegrationTests(unittest.TestCase):
                     answer['index'] = 99
                 if owner.mismatch:
                     answer['answer_text'] = '3'
-                if 'supported' in payload['format']['required']:
-                    answer.update(supported=owner.supported, source_index=0, evidence_quote=owner.quote)
                 self.respond({'message': {'content': json.dumps(answer)}})
             def respond(self, data):
                 encoded = json.dumps(data).encode()
@@ -107,29 +105,20 @@ class OllamaIntegrationTests(unittest.TestCase):
                             'references': [{'source': 'Book', 'text': 'x' * 901}]})
         self.assertEqual(self.payloads, [])
 
-    def test_single_textbook_pass_returns_real_quote(self):
-        self.disagreement = True
-        result = server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
-                                 'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
+    def test_single_pass_receives_references_without_requiring_quote(self):
+        references = [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]
+        result = server.analyze({'prompt': '2+2?', 'choices': ['3', '4'], 'references': references})
         self.assertEqual(len(self.payloads), 1)
-        self.assertTrue(result['textbook_resolved'])
         self.assertEqual(result['index'], 1)
-        self.assertEqual(result['evidence_quote'], 'Two plus two equals four.')
+        self.assertEqual(result['reference_count'], 1)
         payload = self.payloads[0][1]
-        self.assertIn('using ONLY', payload['messages'][0]['content'])
-        self.assertEqual(len(payload['messages']), 2)
-        self.assertIn('supported', payload['format']['required'])
+        self.assertEqual(json.loads(payload['messages'][1]['content'])['textbook_excerpts'], references)
+        self.assertNotIn('evidence_quote', payload['format']['required'])
+        self.assertNotIn('using ONLY', payload['messages'][0]['content'])
+        self.assertIn('Ignore unrelated excerpts', payload['messages'][0]['content'])
 
-    def test_textbook_reference_rejects_fabricated_quote(self):
-        self.disagreement = True
-        self.quote = 'Fabricated evidence not in the textbook.'
-        with self.assertRaisesRegex(ValueError, 'not present'):
-            server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
-                            'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
-
-    def test_textbook_reference_declines_unsupported_answer(self):
-        self.disagreement = True
-        self.supported = False
-        with self.assertRaisesRegex(ValueError, 'could not support'):
-            server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
-                            'references': [{'source': 'Arithmetic', 'text': 'Two plus two equals four.'}]})
+    def test_unrelated_excerpts_do_not_block_single_ai_answer(self):
+        result = server.analyze({'prompt': '2+2?', 'choices': ['3', '4'],
+                                'references': [{'source': 'Soldering', 'text': 'Heat the metal to melt solder.'}]})
+        self.assertEqual(result['answer_text'], '4')
+        self.assertEqual(len(self.payloads), 1)

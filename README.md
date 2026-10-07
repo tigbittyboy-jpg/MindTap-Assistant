@@ -1,6 +1,6 @@
-# MindTap Assistant — v0.5.5.3
+# MindTap Assistant — v0.5.5.4
 
-A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It answers in one pass, using matching saved textbook excerpts first. When excerpts are supplied, it must return a supporting quote; otherwise it pauses. Without matching excerpts, it uses model knowledge.
+A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It answers in one pass, using matching saved textbook excerpts first. Relevant textbook facts take priority; the model can use its own knowledge when excerpts do not cover the question.
 
 The AI can still be wrong, even with textbook references. Use it where study assistance is allowed.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.5.5.3](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.3.zip).
+1. [Download v0.5.5.4](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.5.5.4.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.5.5.3**. The popup badge shows **v0.5.5.3**.
+Chrome shows version **0.5.5.4**. The popup badge shows **v0.5.5.4**.
 
 ## 5. Use it
 
@@ -84,7 +84,7 @@ At the last question, automatic mode clicks **Review**, waits for one available 
 
 Closing the popup does **not** stop automatic mode. Reopen it to see progress or turn Automation Off.
 
-One model pass is faster than the previous double check. Thinking mode stays off. Textbook answers must include a quote that appears in the supplied excerpt. A real quote can still be misinterpreted, so this does not guarantee correctness.
+One model pass is faster than the previous double check. Thinking mode stays off. Textbook excerpts are context for that single AI answer. Exact quotes are not required, and search matches do not guarantee correctness.
 
 The extension does not click a separate **Check Answer** or **Submit** button. Handle those yourself if needed. A page’s Next button may itself submit an answer.
 
