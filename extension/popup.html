@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>MindTap Assistant</title>
-<style>body{font:14px system-ui;width:330px;padding:14px;color:#172033}button{padding:9px;margin:4px 0;width:100%}pre{white-space:pre-wrap;font:inherit}input[type=number]{width:55px}</style></head>
+<style>body{font:14px system-ui;width:330px;padding:14px;color:#172033}button{padding:9px;margin:4px 0;width:100%}pre{white-space:pre-wrap;font:inherit}</style></head>
 <body><h2>MindTap Assistant</h2><p>Open a question, then start. Suggestions send question text and answer choices to the backend’s configured AI provider.</p>
 <button id="analyze">Analyze question</button><button id="apply">Select suggested answer</button><button id="next">Click Next</button><button id="chooseNext">Choose Next button</button>
-<label><input type="checkbox" id="auto"> Automatically select and advance</label><p>Maximum questions: <input id="limit" type="number" min="1" max="25" value="5"></p>
+<label><input type="checkbox" id="auto"> Automatically select and advance</label>
 <p>Automatic mode can submit answers. AI suggestions may be incorrect. Stops on unsupported questions or request errors.</p><button id="stop">Stop automatic mode</button><pre id="status" role="status">Ready.</pre><script src="popup.js"></script></body></html>

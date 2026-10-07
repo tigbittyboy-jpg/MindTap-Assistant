@@ -4,8 +4,7 @@ async function command(action) {
     const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
     if (action === 'chooseNext') status.textContent = 'Click the page’s Next button once. The identifying click will not advance.';
     const result = await chrome.runtime.sendMessage({action, tabId: tab.id,
-      auto: document.querySelector('#auto').checked,
-      limit: Math.max(1, Math.min(25, Number(document.querySelector('#limit').value) || 5))});
+      auto: document.querySelector('#auto').checked});
     status.textContent = result.error || result.message;
   } catch (error) { status.textContent = error.message; }
 }

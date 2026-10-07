@@ -30,11 +30,10 @@ async function analyze(tabId) {
   await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}`);
   return suggestion;
 }
-async function automate(tabId, limit) {
+async function automate(tabId) {
   running = true; stopped = false;
   try {
-    for (let count = 0; count < limit; count++) {
-      if (stopped) break;
+    while (!stopped) {
       const answer = await analyze(tabId);
       if (stopped) break;
       await page(tabId, 'apply', [answer.fingerprint, answer.index]);
@@ -42,7 +41,6 @@ async function automate(tabId, limit) {
       if (stopped) break;
       await page(tabId, 'next', [answer.fingerprint]);
       suggestions.delete(tabId);
-      if (count + 1 === limit) break;
       let changed = false;
       for (let attempt = 0; attempt < 20 && !stopped; attempt++) {
         await delay(500);
@@ -51,7 +49,7 @@ async function automate(tabId, limit) {
       }
       if (!changed && !stopped) throw Error('Automatic mode stopped: next question did not appear.');
     }
-    await report(stopped ? 'Automatic mode stopped.' : 'Automatic mode reached its question limit.');
+    await report('Automatic mode stopped.');
   } catch (error) { await report(error.message); }
   finally { running = false; }
 }
@@ -62,7 +60,7 @@ chrome.runtime.onMessage.addListener((request, sender, reply) => {
     if (running) throw Error('Automatic mode is running. Stop it before using manual controls.');
     if (request.action === 'analyze') {
       if (request.auto) {
-        void automate(request.tabId, Math.max(1, Math.min(25, Number(request.limit) || 5)));
+        void automate(request.tabId);
         return {message: 'Automatic mode started.'};
       }
       await analyze(request.tabId);

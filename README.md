@@ -1,6 +1,6 @@
 # MindTap Study Assistant
 
-A Chrome Manifest V3 extension with a local Python gateway to Gemini or local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances up to 25 questions regardless of model-reported confidence. Confidence is an AI estimate, not a guarantee of correctness.
+A Chrome Manifest V3 extension with a local Python gateway to Gemini or local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances without a question-count limit, regardless of model-reported confidence. It continues until stopped or a navigation or request error occurs. Confidence is an AI estimate, not a guarantee of correctness.
 
 ## Install
 
@@ -9,7 +9,7 @@ A Chrome Manifest V3 extension with a local Python gateway to Gemini or local Ol
 3. From this repository, run `python3 backend/server.py`. On Windows, use `python backend/server.py`. Leave the terminal running. The backend binds only to `127.0.0.1:8765`.
 4. Open Chrome's Extensions page, enable Developer mode, click **Load unpacked**, and select the `extension` folder.
 5. Open a MindTap question and click the extension. Use **Analyze question**, review the suggestion, then **Select suggested answer**. **Click Next** advances when exactly one recognizable Next or Continue control is present.
-6. To automate, enable **Automatically select and advance**, set the question limit, then click **Analyze question**. Reopen the popup to view status or stop. Closing the popup does not stop the run. Stop takes effect before the next action; a click already in progress cannot be undone.
+6. To automate, enable **Automatically select and advance**, then click **Analyze question**. Reopen the popup to view status or stop. Closing the popup does not stop the run. Stop takes effect before the next action; a click already in progress cannot be undone.
 
 With the Gemini provider, question text and choices are sent to Google Gemini when you analyze. With Ollama, the backend sends them only to your local Ollama service; no cloud API key is used. API usage may incur charges. The backend does not save questions or credentials. Use it where assistance is permitted.
 
