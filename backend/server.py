@@ -47,7 +47,13 @@ def analyze(data):
         f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
         data=json.dumps(payload).encode(),
         headers={'Content-Type': 'application/json', 'x-goog-api-key': key}, method='POST')
-    with urllib.request.urlopen(request, timeout=35) as response:
+    try:
+        timeout = int(os.environ.get('GEMINI_TIMEOUT_SECONDS', '75'))
+    except ValueError as error:
+        raise ValueError('GEMINI_TIMEOUT_SECONDS must be an integer from 5 to 90.') from error
+    if not 5 <= timeout <= 90:
+        raise ValueError('GEMINI_TIMEOUT_SECONDS must be an integer from 5 to 90.')
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         provider = json.load(response)
     try:
         parts = provider['candidates'][0]['content']['parts']
@@ -96,7 +102,7 @@ def connection_error(error):
     if isinstance(reason, socket.gaierror):
         return 'Could not resolve Gemini’s hostname. Check DNS, Internet access, VPN, or proxy settings.'
     if isinstance(reason, TimeoutError):
-        return 'Connection to Gemini timed out. Check your network, VPN, or proxy and retry.'
+        return 'Gemini did not respond before the timeout. This can be caused by model demand or network delays. Retry later, or check your VPN, proxy, and connection.'
     if isinstance(reason, ssl.SSLError):
         return 'TLS connection to Gemini failed. Check Python certificates and any HTTPS-inspecting proxy.'
     tunnel = re.search(r'Tunnel connection failed: (\d{3})', str(reason))

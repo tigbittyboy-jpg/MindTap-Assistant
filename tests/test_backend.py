@@ -16,12 +16,13 @@ class BackendTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_question(data)
 
-    @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder'})
+    @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder', 'GEMINI_TIMEOUT_SECONDS': '75'})
     def test_provider_contract(self):
         provider = {'candidates': [{'content': {'parts': [{'text': json.dumps(
             {'index': 1, 'confidence': .95, 'explanation': 'Two plus two is four.'})}]}}]}
         with patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(provider).encode())) as fetch:
             self.assertEqual(analyze({'prompt': '2+2?', 'choices': ['3', '4']})['index'], 1)
+            self.assertEqual(fetch.call_args.kwargs['timeout'], 75)
             request = fetch.call_args.args[0]
             self.assertEqual(request.get_header('X-goog-api-key'), 'test-placeholder')
             self.assertNotIn('test-placeholder', request.full_url)
@@ -46,7 +47,7 @@ class BackendTests(unittest.TestCase):
     def test_connection_errors_are_specific(self):
         cases = [(ssl.SSLCertVerificationError(1, 'certificate verify failed'), 'Install Certificates.command'),
                  (socket.gaierror(-2, 'name not known'), 'hostname'),
-                 (TimeoutError(), 'timed out'), (ssl.SSLError(), 'TLS')]
+                 (TimeoutError(), 'timeout'), (ssl.SSLError(), 'TLS')]
         for reason, expected in cases:
             self.assertIn(expected, connection_error(urllib.error.URLError(reason)))
         self.assertNotIn('secret-placeholder', connection_error(urllib.error.URLError('secret-placeholder')))
@@ -71,6 +72,14 @@ class BackendTests(unittest.TestCase):
     def test_provider_error_handles_non_json_response(self):
         error = urllib.error.HTTPError('https://example.test', 400, 'Bad request', {}, io.BytesIO(b'<html>unavailable</html>'))
         self.assertIn('No readable error details', provider_error(error))
+
+
+    @patch.dict(os.environ, {'GEMINI_API_KEY': 'test-placeholder', 'GEMINI_TIMEOUT_SECONDS': '0'})
+    @patch('urllib.request.urlopen')
+    def test_invalid_timeout_rejected_before_request(self, fetch):
+        with self.assertRaisesRegex(ValueError, 'GEMINI_TIMEOUT_SECONDS'):
+            analyze({'prompt': '2+2?', 'choices': ['3', '4']})
+        fetch.assert_not_called()
 
 
 if __name__ == '__main__':
