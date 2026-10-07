@@ -9,6 +9,11 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+if __package__:
+    from .hvac_calculator import calculate_subcooling
+else:
+    from hvac_calculator import calculate_subcooling
+
 
 def validate_question(data):
     if not isinstance(data, dict):
@@ -164,6 +169,9 @@ def cached_answer(key):
 def analyze(data):
     global cache_bytes
     question = validate_question(data)
+    calculated = calculate_subcooling(question)
+    if calculated is not None:
+        return calculated
     settings = generation_settings()
     key = hashlib.sha256(json.dumps({'question': question, 'settings': settings,
         'instructions': ANSWER_INSTRUCTIONS, 'endpoint': OLLAMA_BASE_URL},

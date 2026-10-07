@@ -48,12 +48,14 @@ function harness({questionData, switchToTextbookOnFetch = false, assistanceMode 
   const context = vm.createContext({chrome, crypto: {randomUUID: () => `entry-${requests.length}`},
     setTimeout: fn => queueMicrotask(fn), AbortSignal, Date, TextEncoder,
     fetch: async (_url, request) => {
+      if (_url === 'chrome-extension://test/data/r410a-pt.json') return {ok: true, json: async () => JSON.parse(fs.readFileSync(path.join(__dirname, '../extension/data/r410a-pt.json'), 'utf8'))};
       const body = JSON.parse(request.body); requests.push(body);
       if (switchToTextbookOnFetch) await new Promise(resolve => listener({action: 'setAssistanceMode', mode: 'textbook'}, {id: 'test'}, resolve));
       if (disagreement) return {ok: false, json: async () => ({error: 'Textbook reference could not support an answer. Review manually.'})};
       return {ok: true, json: async () => ({cached, textbook_resolved: bookTie, evidence_source_index: 0, evidence_source: 'Numbers', evidence_quote: badQuote ? 'Fabricated quote that is absent.' : 'Question number choices: 2 plus 2 equals 4.', reference_count: body.references.length, analysis_mode: unchecked ? undefined : 'single_pass', index: 1, answer_text: answerMismatch ? '3' : '4', confidence: .05,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
+  context.importScripts = file => vm.runInContext(fs.readFileSync(path.join(__dirname, '../extension', file), 'utf8'), context);
   vm.runInContext(source, context);
   return {session, local, requests, clicks, finishes,
     async command(request) { return new Promise(resolve => listener(request, {id: 'test'}, resolve)); },
@@ -256,4 +258,33 @@ test('textbook-only mode displays possible answer, short reason, and passage wit
   assert.match(result.message, /Textbook passages · no AI/);
   assert.equal(app.requests.length, 0);
   assert.equal(app.clicks.length, 0);
+});
+
+test('subcooling calculates the actual example in textbook mode without saved excerpts or AI', async () => {
+  const app = harness({assistanceMode: 'textbook', questionData: {
+    prompt: 'The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?',
+    choices: ['12°F', '21°F', '42°F', '7°F']}});
+  const result = await app.command({action: 'analyze', tabId: 1});
+  assert.match(result.message, /Calculated answer: 12°F/);
+  assert.match(result.message, /11.6°F/);
+  assert.match(result.message, /CoolProp 7.2.0/);
+  assert.equal(app.requests.length, 0);
+});
+test('AI mode calculator bypasses model and preserves answer verification', async () => {
+  const app = harness({questionData: {
+    prompt: 'The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?',
+    choices: ['21°F', '12°F', '42°F', '7°F']}});
+  await app.command({action: 'analyze', tabId: 1});
+  const result = await app.command({action: 'apply', tabId: 1});
+  assert.match(result.message, /selected and verified/);
+  assert.equal(app.requests.length, 0);
+  assert.equal(app.session.runHistory[0].calculated, true);
+});
+test('unsupported subcooling lookup stops without an AI request', async () => {
+  const app = harness({questionData: {
+    prompt: 'R-22 condensing pressure is 417.4 psig and condenser outlet temperature is 108°F. Calculate subcooling.',
+    choices: ['12°F', '21°F']}});
+  const result = await app.command({action: 'analyze', tabId: 1});
+  assert.match(result.error, /supports R-410A only/);
+  assert.equal(app.requests.length, 0);
 });

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../extension/background.js'), 'utf8');
-const context = vm.createContext({chrome: {runtime: {onMessage: {addListener() {}}}}});
+const context = vm.createContext({importScripts() {}, chrome: {runtime: {onMessage: {addListener() {}}}}});
 vm.runInContext(source, context);
 function match(prompt, choices, text) {
   context.data = {prompt, choices};

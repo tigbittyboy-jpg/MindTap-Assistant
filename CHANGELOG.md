@@ -1,5 +1,13 @@
 # Release notes
 
+## v0.6.4
+
+- Add deterministic R-410A subcooling calculations using a bundled CoolProp 7.2.0 bubble-point PT table.
+- Show the formula, calculated result, closest rounded choice, and table source rather than AI confidence.
+- Support one psig pressure and one Fahrenheit liquid temperature; stop unsupported inputs and unmatched/ambiguous choices instead of guessing.
+- Works in both modes, without AI; textbook-only mode still needs no backend.
+- Update extension and backend; restart the backend if using it directly.
+
 ## v0.6.3
 
 - Show a possible answer text match, short matching reason, and source sentence alongside passages in textbook-only mode.

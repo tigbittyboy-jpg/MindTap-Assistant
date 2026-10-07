@@ -1,3 +1,4 @@
+importScripts('hvac-calculator.js');
 let running = false;
 let stopped = false;
 const suggestions = new Map();
@@ -98,10 +99,25 @@ function textbookTextMatch(data, references) {
   }
   return matches.length === 1 ? matches[0] : null;
 }
+let ptTable;
+async function calculateQuestion(data) {
+  if (!/\bsub[- ]?cool(?:ing|ed)?\b/i.test(data.prompt) || !/\b(?:psig|psia|psi|bar|kpa)\b/i.test(data.prompt)) return null;
+  if (!ptTable) {
+    const response = await fetch(chrome.runtime.getURL('data/r410a-pt.json'));
+    if (!response.ok) throw Error('Bundled pressure–temperature table could not be loaded. Reload the extension.');
+    ptTable = await response.json();
+  }
+  return hvacCalculator.calculateSubcooling(data, ptTable);
+}
 async function lookupTextbook(tabId) {
   suggestions.delete(tabId);
   const data = await stableQuestion(tabId);
   const {textbookSections = []} = await chrome.storage.local.get('textbookSections');
+  const calculated = await calculateQuestion(data);
+  if (calculated) {
+    const references = findReferences(data, textbookSections);
+    return report(`Calculated answer: ${calculated.answer_text}\nWhy: ${calculated.explanation}\nSource: ${calculated.calculation_source}\n\n` + (references.length ? references.map(item => `${item.source}\n${item.text}`).join('\n\n') : 'No matching saved passages needed; used the bundled R-410A lookup.'));
+  }
   if (!textbookSections.length) return report('No textbook sections saved yet. Open your textbook sections with auto-save on, then return here and find passages. No AI or backend is needed.');
   const references = findReferences(data, textbookSections);
   if (!references.length) return report('No matching saved passages found. Open the relevant textbook section to save it, then try again. Choose your answer manually.');
@@ -157,19 +173,22 @@ async function analyze(tabId) {
   await recordHistory({id: historyId, timestamp: new Date().toISOString(), prompt: data.prompt, choices: data.choices});
   let answer;
   try {
-    const response = await fetch('http://127.0.0.1:8765/analyze', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt: data.prompt, choices: data.choices, references}), signal: AbortSignal.timeout(100000)
+    answer = await calculateQuestion({...data, references});
+    if (!answer) {
+      const response = await fetch('http://127.0.0.1:8765/analyze', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({prompt: data.prompt, choices: data.choices, references}), signal: AbortSignal.timeout(100000)
     });
     answer = await response.json();
     if (!response.ok) throw Error(answer.error || 'Backend request failed.');
+    }
     if (answer.analysis_mode !== 'single_pass') throw Error('Restart the v0.5.5.4 backend to use single-pass answers.');
     if (references.length && answer.reference_count !== references.length) throw Error('Textbook context was not accepted. Restart the v0.5 backend.');
     if (!Number.isInteger(answer.index) || answer.index < 0 || answer.index >= data.choices.length ||
         !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
     if (answer.answer_text !== undefined && answer.answer_text !== data.choices[answer.index]) throw Error('AI answer text and index disagree.');
     await recordHistory({id: historyId, suggestedIndex: answer.index, suggestedText: data.choices[answer.index], confidence: answer.confidence,
-      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, cached: answer.cached === true});
+      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, calculated: answer.calculated === true, cached: answer.cached === true});
   } catch (error) {
     await recordHistory({id: historyId, error: error.message});
     throw error;
@@ -177,7 +196,7 @@ async function analyze(tabId) {
   if (await assistanceMode() !== 'ai') throw Error('Switched to textbook-only mode; AI suggestion discarded.');
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`Suggestion: ${data.choices[answer.index]}\nConfidence (AI estimate): ${Math.round(answer.confidence * 100)}%\n${answer.explanation}\n${answer.cached ? "Cached answer reused.\n" : ""}\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : "No matching saved textbook excerpts; answered from model knowledge."}`);
+  await report(`${answer.calculated ? "Calculated answer" : "Suggestion"}: ${data.choices[answer.index]}\n${answer.calculated ? "Source: " + answer.calculation_source : "Confidence (AI estimate): " + Math.round(answer.confidence * 100) + "%"}\n${answer.explanation}\n${answer.cached ? "Cached answer reused.\n" : ""}\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : answer.calculated ? "Used bundled R-410A PT lookup; no AI generation." : "No matching saved textbook excerpts; answered from model knowledge."}`);
   return suggestion;
 }
 async function automate(tabId) {
