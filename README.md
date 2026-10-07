@@ -1,6 +1,6 @@
 # MindTap Study Assistant
 
-A Chrome Manifest V3 extension with a local Python gateway to Gemini or local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances up to 25 questions, stopping below 90% model-reported confidence. Confidence is an AI estimate, not a guarantee of correctness.
+A Chrome Manifest V3 extension with a local Python gateway to Gemini or local Ollama. It reads one visible multiple-choice question, explains a suggested answer, selects that answer on request, and can click Next. Optional automatic mode selects and advances up to 25 questions regardless of model-reported confidence. Confidence is an AI estimate, not a guarantee of correctness.
 
 ## Install
 

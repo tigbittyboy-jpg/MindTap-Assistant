@@ -37,7 +37,6 @@ async function automate(tabId, limit) {
       if (stopped) break;
       const answer = await analyze(tabId);
       if (stopped) break;
-      if (answer.confidence < 0.9) throw Error('Automatic mode stopped: confidence below 90%. Review the suggestion.');
       await page(tabId, 'apply', [answer.fingerprint, answer.index]);
       await delay(750);
       if (stopped) break;
