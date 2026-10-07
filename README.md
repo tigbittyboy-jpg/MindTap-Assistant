@@ -1,4 +1,4 @@
-# MindTap Assistant — v0.4.1
+# MindTap Assistant — v0.4.2
 
 A Chrome extension that reads a multiple-choice question and asks a local AI model for an answer. It checks the question twice before suggesting anything. If the answers disagree, it stops so you can review them.
 
@@ -16,7 +16,7 @@ You do not need an API key, Node, or npm to use the extension.
 
 ## 1. Download the extension
 
-1. [Download v0.4.1](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.4.1.zip).
+1. [Download v0.4.2](https://github.com/tigbittyboy-jpg/shii/archive/refs/tags/v0.4.2.zip).
 2. Double-click the ZIP to unzip it.
 3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
 
@@ -69,7 +69,7 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 4. Open your extracted project folder and select the **extension** folder inside it.
 5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
 
-Chrome shows version **0.4.1**. The popup badge shows **v0.4.1**.
+Chrome shows version **0.4.2**. The popup badge shows **v0.4.2**.
 
 ## 5. Use it
 
@@ -81,6 +81,8 @@ Open one multiple-choice question in MindTap, then click the extension icon.
 - **Choose Next button:** lets you identify Next if the extension cannot find it.
 - **Automatically select & advance:** turn this on, then click **Analyze question** to run automatically.
 - **Stop automatic mode:** stops before the next action. An action already happening cannot be undone.
+
+At the last question, automatic mode clicks **Review**, waits for one available **Finish** button, then clicks it once and stops. Finish may submit the activity. If it cannot identify Finish, it stops for you to finish manually. Manual **Click Next** can open Review, but you must click Finish yourself.
 
 Closing the popup does **not** stop automatic mode. Reopen it to see progress or click Stop.
 

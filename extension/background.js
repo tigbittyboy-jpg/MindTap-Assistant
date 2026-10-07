@@ -91,9 +91,23 @@ async function automate(tabId) {
       await delay(750);
       if (stopped) break;
       await page(tabId, 'verify', [answer.fingerprint, answer.index]);
-      await page(tabId, 'next', [answer.fingerprint]);
+      const navigation = await page(tabId, 'advance', [answer.fingerprint]);
       await recordHistory({id: answer.historyId, nextClicked: true});
       suggestions.delete(tabId);
+      if (navigation.kind === 'review') {
+        await report('Review opened. Waiting for Finish…');
+        for (let attempt = 0; attempt < 20 && !stopped; attempt++) {
+          await delay(500);
+          if (stopped) break;
+          if (await page(tabId, 'finishReview')) {
+            await recordHistory({id: answer.historyId, finishClicked: true});
+            await report('Finish clicked. Automatic mode completed.');
+            return;
+          }
+        }
+        if (!stopped) throw Error('Review opened, but Finish was not available. Finish manually.');
+        break;
+      }
       let changed = false;
       let previousFingerprint;
       for (let attempt = 0; attempt < 20 && !stopped; attempt++) {

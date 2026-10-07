@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 10) return;
+  if (globalThis.mindtapAssistant?.version === 11) return;
   const visible = el => !!el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
@@ -21,10 +21,20 @@
   };
   let chosenNext = null;
   const enabled = el => el.isConnected && visible(el) && !el.disabled && !el.closest('[aria-disabled="true"],[inert]');
-  function nextLabel(value) {
-    return /^(next(?: question| page)?|continue)$/i.test((value || '')
+  function navigationLabel(value) {
+    return (value || '')
       .replace(/(?:arrow[_ -]?(?:forward|right)|chevron[_ -]?right|navigate[_ -]?next)/gi, '')
-      .replace(/[→›»➜➔⟶➡\u200b-\u200d\ufe0f]/g, '').replace(/\s+/g, ' ').trim());
+      .replace(/(?:checklist|fact_check)/gi, '').replace(/[→›»➜➔⟶➡✓✔☑\u200b-\u200d\ufe0f]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function nextLabel(value) { return /^(next(?: question| page)?|continue|review)$/i.test(navigationLabel(value)); }
+  function matchesLabel(el, pattern) {
+    return [el.getAttribute('aria-label'), el.getAttribute('title'), text(el), el.value]
+      .some(value => pattern.test(navigationLabel(value)));
+  }
+  function actionButtons(pattern) {
+    const candidates = [...document.querySelectorAll('button,a,[role=button],input[type=button],input[type=submit]')]
+      .filter(enabled).filter(el => matchesLabel(el, pattern));
+    return candidates.filter(el => !candidates.some(parent => parent !== el && parent.contains(el)));
   }
   function findNext() {
     if (chosenNext) {
@@ -132,7 +142,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 10,
+    version: 11,
     read() { const {controls, ...data} = question(); return data; },
     apply(expected, index) {
       const data = question();
@@ -170,10 +180,33 @@
         document.addEventListener('keydown', key, true);
       });
     },
+    advance(expected) {
+      const data = question();
+      if (data.fingerprint !== expected) throw Error('Question changed. Analyze it again.');
+      const selected = data.controls.filter(control => control.checked || control.getAttribute('aria-checked') === 'true');
+      if (selected.length !== 1) throw Error('Select and verify an answer before advancing.');
+      const button = findNext();
+      const kind = matchesLabel(button, /^review$/i) ? 'review' : 'next';
+      button.click();
+      return {kind};
+    },
+    finishReview() {
+      // Do not finish while the last question remains visible during navigation.
+      if ([...document.querySelectorAll('input[type=radio],[role=radio]')]
+          .some(el => visible(el) || [...(el.labels || [])].some(visible))) return false;
+      const buttons = actionButtons(/^finish$/i);
+      if (buttons.length > 1) throw Error('Found multiple Finish buttons. Finish manually.');
+      if (!buttons.length) return false;
+      buttons[0].click();
+      return true;
+    },
     next(expected) {
       if (question().fingerprint !== expected) throw Error('Question changed. Analyze it again.');
-      findNext().click();
-      return 'Next clicked.';
+      const button = findNext();
+      const review = matchesLabel(button, /^review$/i);
+      button.click();
+      return review ? 'Review opened. Finish manually, or use automatic mode for the full flow.' : 'Next clicked.';
     }
+
   };
 })();

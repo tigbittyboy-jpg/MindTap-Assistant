@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 10);
+  assert.equal(window.mindtapAssistant.version, 11);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
@@ -188,4 +188,30 @@ test('reads visible Learnosity answer copies inside aria-hidden row wrappers', (
     '<div aria-hidden="true"><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">3</div></div>' +
     '<div aria-hidden="true"><input type="radio" name="q"><div class="lrn-possible-answer" aria-hidden="true">4</div></div></fieldset>');
   assert.equal(window.mindtapAssistant.read().choices.join(','), '3,4');
+});
+
+
+test('verified last answer advances through Review and finishes once question controls disappear', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset><button id="review">REVIEW ☑</button>');
+  const helper = window.mindtapAssistant;
+  const data = helper.read();
+  assert.throws(() => helper.advance(data.fingerprint), /Select and verify/);
+  helper.apply(data.fingerprint, 1);
+  window.document.querySelector('#review').onclick = () => {
+    window.document.body.innerHTML = '<h2>Review</h2><button id="finish">FINISH</button>';
+  };
+  assert.equal(helper.advance(data.fingerprint).kind, 'review');
+  let clicks = 0;
+  window.document.querySelector('#finish').onclick = () => { clicks++; window.document.querySelector('#finish').remove(); };
+  assert.equal(helper.finishReview(), true);
+  assert.equal(helper.finishReview(), false);
+  assert.equal(clicks, 1);
+});
+test('Finish refuses a question page, disabled controls, and ambiguous buttons', () => {
+  const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset><button>Finish</button>');
+  assert.equal(window.mindtapAssistant.finishReview(), false);
+  window.document.body.innerHTML = '<button disabled>Finish</button>';
+  assert.equal(window.mindtapAssistant.finishReview(), false);
+  window.document.body.innerHTML = '<button>Finish</button><button>Finish</button>';
+  assert.throws(() => window.mindtapAssistant.finishReview(), /multiple Finish/);
 });

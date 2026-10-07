@@ -1,5 +1,11 @@
 # Release notes
 
+## v0.4.2
+
+- Automatically opens Review after the last verified answer, then clicks Finish once and stops.
+- Stops if Finish is missing or ambiguous; respects Stop before finishing.
+- Recognizes Review labels and checklist icons.
+
 ## v0.4.1
 
 - Short explanations for both answer checks: 1–2 sentences requested, with a 360-character limit per explanation.

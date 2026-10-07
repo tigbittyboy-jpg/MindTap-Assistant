@@ -4,9 +4,9 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '../extension/background.js'), 'utf8');
-function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false} = {}) {
+function harness({count = 30, selectionMismatch = false, answerMismatch = false, unchecked = false, disagreement = false, review = false, stopAtReview = false, missingFinish = false} = {}) {
   let listener, cursor = 0, selected = -1, transitionalReads = 0;
-  const session = {}, local = {}, requests = [], clicks = [];
+  const session = {}, local = {}, requests = [], clicks = [], finishes = [];
   const data = () => ({prompt: `Question ${cursor}: 2 + 2?`, choices: ['3', '4'], fingerprint: `q${cursor}`});
   const storage = state => ({
     async get(key) { return structuredClone({[key]: state[key]}); },
@@ -31,7 +31,16 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
         if (selected !== args[1]) return [{result: {error: 'The displayed selected answer does not match the suggestion.'}}];
         return [{result: {value: {index: selected, text: data().choices[selected]}}}];
       }
-      if (operation === 'next') { clicks.push(cursor); cursor++; selected = -1; transitionalReads = 1; return [{result: {value: 'Next clicked'}}]; }
+      if (operation === 'advance') {
+        const kind = review && cursor === count - 1 ? 'review' : 'next';
+        clicks.push(cursor); cursor++; selected = -1; transitionalReads = 1;
+        if (kind === 'review' && stopAtReview) await new Promise(resolve => listener({action: 'stop'}, {id: 'test'}, resolve));
+        return [{result: {value: {kind}}}];
+      }
+      if (operation === 'finishReview') {
+        if (missingFinish) return [{result: {value: false}}];
+        finishes.push(true); return [{result: {value: true}}];
+      }
       throw Error('Unexpected operation');
     }}
   };
@@ -44,7 +53,7 @@ function harness({count = 30, selectionMismatch = false, answerMismatch = false,
         explanation: '2 + 2 = 4.', provider: 'ollama', model: 'test'})};
     }});
   vm.runInContext(source, context);
-  return {session, local, requests, clicks,
+  return {session, local, requests, clicks, finishes,
     async start() {
       const reply = await new Promise(resolve => listener({action: 'analyze', auto: true, tabId: 1}, {id: 'test'}, resolve));
       assert.equal(reply.message, 'Automatic mode started.');
@@ -83,4 +92,23 @@ test('older unchecked backend cannot trigger automatic selection', async () => {
   const app = harness({unchecked: true}); await app.start();
   assert.equal(app.clicks.length, 0);
   assert.match(app.local.status, /Double check missing/);
+});
+
+test('last answer opens Review and clicks Finish exactly once without reanalysis', async () => {
+  const app = harness({count: 2, review: true}); await app.start();
+  assert.equal(app.requests.length, 2);
+  assert.equal(app.finishes.length, 1);
+  assert.equal(app.session.runHistory[1].finishClicked, true);
+  assert.match(app.local.status, /completed/);
+});
+test('Stop on review prevents Finish', async () => {
+  const app = harness({count: 1, review: true, stopAtReview: true}); await app.start();
+  assert.equal(app.finishes.length, 0);
+  assert.match(app.local.status, /stopped/);
+});
+test('missing Finish stops without analyzing review questions', async () => {
+  const app = harness({count: 1, review: true, missingFinish: true}); await app.start();
+  assert.equal(app.requests.length, 1);
+  assert.equal(app.finishes.length, 0);
+  assert.match(app.local.status, /Finish was not available/);
 });
