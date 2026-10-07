@@ -20,7 +20,7 @@ class OllamaIntegrationTests(unittest.TestCase):
             def do_POST(self):
                 payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
                 owner.payloads.append((self.path, payload, self.headers.get('x-goog-api-key')))
-                answer = {'index': 1, 'answer_text': '4', 'confidence': .95, 'explanation': '2 + 2 = 4.'}
+                answer = {'index': 1, 'answer_text': json.loads(payload['messages'][1]['content'])['choices'][1]['text'], 'confidence': .95, 'explanation': 'Test model response.'}
                 if owner.invalid:
                     answer['index'] = 99
                 if owner.mismatch:
@@ -68,6 +68,15 @@ class OllamaIntegrationTests(unittest.TestCase):
         question = json.loads(payload['messages'][1]['content'])
         self.assertEqual(question['choices'], [{'index': 0, 'text': '3'}, {'index': 1, 'text': '4'}])
         self.assertIn('answer_text', payload['format']['required'])
+
+    def test_hvac_application_context_reaches_single_model_request(self):
+        server.analyze({'prompt': 'A low GWP replacement for R-410A in residential heat pumps?',
+                        'choices': ['HFO-1234yf', 'HFC R-32']})
+        self.assertEqual(len(self.payloads), 1)
+        instructions = self.payloads[0][1]['messages'][0]['content']
+        self.assertIn('stationary refrigeration', instructions)
+        self.assertIn('unless the question explicitly specifies automotive', instructions)
+        self.assertIn('If your explanation rules out a choice, do not select it', instructions)
 
     def test_health_identifies_ollama(self):
         with self.client.open(f'http://127.0.0.1:{self.gateway.server_port}/health', timeout=5) as response:

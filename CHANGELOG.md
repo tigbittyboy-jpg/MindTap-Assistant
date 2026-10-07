@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.5.5.6
+
+- Add stationary residential/light commercial HVAC and heat pump context to the model instructions.
+- Require matching the exact application, distinguishing blends from pure refrigerants, and checking choice/explanation consistency within the single pass.
+- Preserve textbook context and one AI request; no independent second check.
+- Restart the updated backend to apply the new instructions.
+
 ## v0.5.5.5
 
 - Swap the answer/status card and textbook save progress card, placing answers higher in the assistant.
