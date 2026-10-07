@@ -78,3 +78,4 @@ Qwen3’s thinking mode is optional: set `OLLAMA_THINK=true` before restarting t
 
 - Added a navy and indigo book icon with a mint sparkle.
 - Configured 16px/32px toolbar icons and 48px/128px extension listing icons.
+- Removed white corner backgrounds and regenerated all icon sizes with transparency.
