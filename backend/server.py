@@ -1,5 +1,7 @@
 """Local Ollama gateway. No third-party Python dependencies."""
 import json
+import re
+from fractions import Fraction
 import os
 import sys
 import threading
@@ -54,6 +56,7 @@ ANSWER_INSTRUCTIONS = (
     'A statement joined by AND is true only if every claim is true; any false claim makes the whole statement false. '
     'Evidence confirming just one clause does not confirm the others. For OR, apply the actual logical relationship rather than requiring every alternative. '
     'If a required claim is unsupported, do not treat partial evidence as full confirmation or report certainty. '
+    'When selecting True for an AND-connected statement with multiple numerical values, explicitly address every value in the explanation; do not omit the unverified clause. '
     'In the short explanation identify the decisive false clause, or briefly explain why all required claims are supported. '
     'Before returning, check within this same response that the selected choice agrees with the decisive facts in your explanation. '
     'If your explanation rules out a choice, do not select it. Do not confuse a pure refrigerant with a blend containing it. '
@@ -81,7 +84,20 @@ def validate_answer(result, question, provider):
         answer_text = result['answer_text']
         if not isinstance(answer_text, str) or answer_text.strip() != question['choices'][index].strip():
             raise ValueError()
-        return {'index': index, 'answer_text': question['choices'][index], 'confidence': confidence, 'explanation': explanation[:360]}
+        explanation = explanation[:360]
+        choices = {choice.strip().lower().rstrip('.') for choice in question['choices']}
+        if choices == {'true', 'false'} and answer_text.strip().lower().rstrip('.') == 'true' and re.search(r'\band\b', question['prompt'], re.I):
+            def values(text):
+                text = re.sub(r'\br\s*-?\s*\d+[a-z0-9]*', '', text, flags=re.I)
+                found = re.findall(r'(?<![\w.])-?\d+(?:\.\d+)?(?:\s*/\s*\d+)?(?![\w.])', text)
+                try:
+                    return {Fraction(value.replace(' ', '')) for value in found}
+                except (ValueError, ZeroDivisionError):
+                    return set()
+            required = values(question['prompt'])
+            if len(required) > 1 and not required.issubset(values(explanation)):
+                raise ValueError('Partial numerical confirmation')
+        return {'index': index, 'answer_text': question['choices'][index], 'confidence': confidence, 'explanation': explanation}
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError(f'{provider} returned an invalid answer. Review the question and retry.') from error
 

@@ -72,3 +72,14 @@ class BackendTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class CompoundStatementTests(unittest.TestCase):
+    def test_partial_true_rejected_but_decisive_false_allowed(self):
+        question = {'prompt': 'Each thread has a 45° angle and taper of 1/16 inch per inch.', 'choices': ['True', 'False']}
+        partial = {'index': 0, 'answer_text': 'True', 'confidence': 1, 'explanation': 'The taper is 1/16 inch per inch.'}
+        with self.assertRaises(ValueError):
+            validate_answer(partial, question, 'Ollama')
+        false = {**partial, 'index': 1, 'answer_text': 'False', 'explanation': 'The thread angle is 60°, not 45°.'}
+        self.assertEqual(validate_answer(false, question, 'Ollama')['answer_text'], 'False')
+        complete = {**partial, 'explanation': 'The specified geometry uses a 45.0° angle and 0.0625 inch per inch taper.'}
+        self.assertEqual(validate_answer(complete, question, 'Ollama')['answer_text'], 'True')

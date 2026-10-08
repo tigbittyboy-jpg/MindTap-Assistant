@@ -1,3 +1,9 @@
+# v0.6.17
+
+- Reject True responses for AND-connected numerical statements when the short explanation omits a stated numerical value.
+- False responses can explain the decisive contradiction. This guard checks coverage, not factual truth.
+- Update and restart the backend to apply the guard.
+
 # v0.6.16
 
 - Instruct the single AI pass to evaluate every clause, number, and qualifier in compound true/false statements and answer choices.
