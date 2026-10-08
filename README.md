@@ -8,7 +8,7 @@ A study helper for your MindTap questions and textbook.
 
 ## Easy setup: textbook mode
 
-You need **Google Chrome** and access to your **MindTap textbook**.
+These steps work on **Mac and Windows**. You need **Google Chrome** and access to your **MindTap textbook**.
 
 ### 1. Download and open the folder
 
@@ -93,7 +93,14 @@ It follows the active tab in the **original browser window**. Keep that window o
 
 The small window can fall behind other windows; Chrome does not provide an always-on-top option.
 
-## Optional: add AI answers on a Mac
+## Optional AI setup: pick your computer
+
+- **Mac:** follow [Mac AI setup](#mac-ai-setup).
+- **Windows:** follow [Windows AI setup](#windows-ai-setup).
+
+AI mode uses your own computer. The default 8B model is a large download and works best with around **16 GB RAM or more**. If your computer struggles with it, textbook-only mode remains available.
+
+## Mac AI setup
 
 AI mode needs **Ollama**, **Python**, and a running **Terminal** window on the same computer as Chrome. Textbook-only mode does not need any of these.
 
@@ -155,7 +162,98 @@ MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 
 To stop it, click its Terminal window and press **Control + C**. Closing it also stops the helper. Later, repeat steps D and E to start it again. Keep Ollama open too.
 
-### F. Turn on AI mode
+Then follow [Use AI mode](#use-ai-mode) below.
+
+## Windows AI setup
+
+Use **PowerShell** for the commands in this section. Do not copy the Mac `export` commands into it.
+
+### 1. Install Ollama
+
+1. Go to [ollama.com/download](https://ollama.com/download).
+2. Choose the **Windows** download.
+3. Open the downloaded installer and follow its steps.
+4. Open **Ollama** from the Start menu. It may appear as an icon near the clock instead of a normal window.
+
+### 2. Install Python
+
+1. Go to [python.org/downloads/windows](https://www.python.org/downloads/windows/).
+2. Download the current Python installer or Python install manager for Windows.
+3. Open the download and finish the installation.
+4. If the installer shows **Add python.exe to PATH**, check it before clicking **Install Now**.
+5. If you already had PowerShell open, close it and open it again after installation.
+
+Python **3.10 or newer** is required. If the install manager asks you to install a Python version when you first run it, accept and let it finish.
+
+### 3. Open PowerShell inside the project folder
+
+1. Open **File Explorer** using the folder icon on your taskbar.
+2. Open the project folder you saved earlier. You should see **backend** and **extension** inside it.
+3. Click File Explorer's **address bar** at the top. This is the folder path, not the search box on the right.
+4. Type `powershell` and press **Enter**.
+5. A PowerShell window opens, already working inside that folder.
+
+Leave File Explorer open too so you can find the folder again later.
+
+### 4. Check Python
+
+Copy this command, paste it into PowerShell with **Ctrl + V**, then press **Enter**:
+
+```powershell
+py -3 --version
+```
+
+You should see something like **Python 3.14.0**. Any version **3.10 or newer** is fine.
+
+If `py` is not recognized, try:
+
+```powershell
+python --version
+```
+
+If that shows Python 3.10 or newer, use **python** instead of **py -3** in the commands below. If it opens the Microsoft Store or neither command works, finish installing Python, then close and reopen PowerShell using step 3.
+
+### 5. Download the AI model once
+
+Paste this into PowerShell and press **Enter**:
+
+```powershell
+ollama pull qwen3:8b
+```
+
+Wait for the download to finish. It is several gigabytes and can take a while. You only need to download it once.
+
+If `ollama` is not recognized, open the Ollama app, close PowerShell, and reopen it using step 3. Then try again.
+
+### 6. Start the AI helper
+
+Copy the whole block below into PowerShell, then press **Enter**:
+
+```powershell
+$env:OLLAMA_MODEL = "qwen3:8b"
+$env:OLLAMA_THINK = "false"
+py -3 backend/server.py
+```
+
+If step 4 showed that you need **python** instead, use this block:
+
+```powershell
+$env:OLLAMA_MODEL = "qwen3:8b"
+$env:OLLAMA_THINK = "false"
+python backend/server.py
+```
+
+When it works, you will see:
+
+```text
+MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
+```
+
+**Leave PowerShell and Ollama open while using AI mode.** The helper is supposed to keep running. The first answer may take longer while the model loads.
+
+To stop the helper, click PowerShell and press **Ctrl + C**. Later, repeat steps 3 and 6 to start it again. The `$env:` settings last only for that PowerShell window.
+
+## Use AI mode
 
 1. Open the assistant in Chrome.
 2. Change **Mode** to **Local AI**.
@@ -179,7 +277,9 @@ Saved textbook sections help AI mode too. AI answers can still be wrong, especia
 5. Go to `chrome://extensions`. Click the **Reload** arrow on the MindTap Study Assistant card.
 6. Close the old detached assistant window, if open.
 7. Refresh your MindTap and textbook tabs. Open the assistant again and check its version.
-8. For AI mode, restart the helper using steps D and E above.
+8. For AI mode, restart the helper: **Mac steps D and E**, or **Windows steps 3 and 6**.
+
+For copying and pasting files, use **Command + C / Command + V** on Mac or **Ctrl + C / Ctrl + V** in Windows File Explorer.
 
 Keep the old folder's name and location the same. You are replacing its contents, not switching Chrome to a different folder.
 
@@ -201,11 +301,11 @@ Keep the old folder's name and location the same. You are replacing its contents
 
 | What you see | What to do |
 | --- | --- |
-| **ollama: command not found** | Open Ollama and finish its setup. Close and reopen Terminal, then try the download command again. |
-| **python3: command not found** | Install Python using step B, then close and reopen Terminal. |
-| **Can't open file … backend/server.py** | Terminal is in the wrong folder. Repeat the `cd ` and drag-folder instructions in step D. |
-| **Address already in use** | The old helper is still running. Stop it with **Control + C** in its Terminal window. Then start the new one. |
-| **Could not connect to local Ollama** | Open the Ollama app. If needed, run `ollama serve` in a second Terminal window and leave it open. |
+| **ollama not found / not recognized** | Open Ollama and finish its installation. Close and reopen Terminal on Mac or PowerShell on Windows, then try again. |
+| **python3 / py / python not found** | Finish installing Python, then reopen your command window. Mac uses **python3**. Windows normally uses **py -3**, or **python** if its version check works. |
+| **Can't open file … backend/server.py** | Your command window is in the wrong folder. Mac: repeat step D. Windows: reopen PowerShell from the project folder using Windows step 3. |
+| **Address already in use** | Stop the old helper with **Ctrl + C** in its Terminal or PowerShell window. Then start the new one. |
+| **Could not connect to local Ollama** | Open Ollama. If needed, run `ollama serve` in a second Terminal or PowerShell window and leave it open. |
 | **Model not found** | Run `ollama pull qwen3:8b` and wait for it to finish. |
 | **Restart the backend / textbook context not accepted** | Stop the old helper, replace the project files with the current version, and start the updated helper. |
 | **Answers are slow** | Keep Ollama open, use `OLLAMA_THINK=false` as shown above, and close memory-heavy apps. Repeat questions may reuse a cached answer. |
@@ -236,7 +336,9 @@ The helper keeps the model loaded between questions. To free its memory when fin
 ollama stop qwen3:8b
 ```
 
-Answers have a 512-token output limit with thinking off. If you get incomplete responses with unusually long choices, stop the helper and restart with:
+Answers have a 512-token output limit with thinking off. If you get incomplete responses with unusually long choices, stop the helper and restart with the commands for your computer. Open the command window in the project folder first.
+
+**Mac:**
 
 ```bash
 export OLLAMA_MODEL=qwen3:8b
@@ -244,6 +346,17 @@ export OLLAMA_THINK=false
 export OLLAMA_MAX_TOKENS=1024
 python3 backend/server.py
 ```
+
+**Windows PowerShell:**
+
+```powershell
+$env:OLLAMA_MODEL = "qwen3:8b"
+$env:OLLAMA_THINK = "false"
+$env:OLLAMA_MAX_TOKENS = "1024"
+py -3 backend/server.py
+```
+
+Use `python backend/server.py` on the last line if your installation uses **python** instead of **py -3**.
 
 Repeat answers are cached only when the question, ordered choices, textbook passages, and model settings match. The cache is limited to 256 answers / 8 MB and clears when the helper restarts. Cached answers can preserve mistakes too.
 

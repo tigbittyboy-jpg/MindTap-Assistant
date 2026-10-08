@@ -2,7 +2,8 @@
 
 ## v0.6.5
 
-- Rewrite the README as a beginner walkthrough, with no-AI installation first and separate optional Mac AI steps.
+- Rewrite the README as a beginner walkthrough, with no-AI installation first and separate optional Mac and Windows AI steps.
+- Add Windows PowerShell commands, Python launcher checks, and Windows-specific troubleshooting to the same v0.6.5 release.
 - Show the exact extension folder to select, expected success messages, and simple troubleshooting.
 - Make archive-preserving updates the default; explain that removing the extension deletes saved sections.
 - Documentation update; no backend changes or restart required.
