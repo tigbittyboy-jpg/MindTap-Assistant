@@ -91,6 +91,9 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertIn('never treat a psig number as a Fahrenheit temperature', instructions)
         self.assertIn('unless the question explicitly specifies automotive', instructions)
         self.assertIn('If your explanation rules out a choice, do not select it', instructions)
+        self.assertIn('check every claim separately', instructions)
+        self.assertIn('any false claim makes the whole statement false', instructions)
+        self.assertIn('Evidence confirming just one clause does not confirm the others', instructions)
 
     def test_health_identifies_ollama(self):
         with self.client.open(f'http://127.0.0.1:{self.gateway.server_port}/health', timeout=5) as response:

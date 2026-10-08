@@ -1,3 +1,9 @@
+# v0.6.16
+
+- Instruct the single AI pass to evaluate every clause, number, and qualifier in compound true/false statements and answer choices.
+- Require all AND-connected claims to be true, and explain the decisive false clause instead of confirming only the matching part.
+- Prompt guidance reduces partial-evidence mistakes but cannot guarantee model accuracy. Update and restart the backend.
+
 # v0.6.15
 
 - Recognize compressor inlet temperature for total superheat calculations in both modes.
