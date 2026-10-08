@@ -1,146 +1,146 @@
 [
   {
     "name": "real question",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
-    "answer": "12°F"
+    "answer": "12\u00b0F"
   },
   {
     "name": "reordered choices",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "7°F",
-      "42°F",
-      "21°F",
-      "12°F"
+      "7\u00b0F",
+      "42\u00b0F",
+      "21\u00b0F",
+      "12\u00b0F"
     ],
-    "answer": "12°F"
+    "answer": "12\u00b0F"
   },
   {
     "name": "psia rejected",
-    "prompt": "The condensing pressure is 417.4 psia for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psia for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "gauge pressure"
   },
   {
     "name": "other refrigerant",
-    "prompt": "The condensing pressure is 417.4 psig for R-22 and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-134a and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
-    "error": "R-410A only"
+    "error": "R-410A and R-22 only"
   },
   {
     "name": "above chart range",
-    "prompt": "The condensing pressure is 9999 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 9999 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "outside"
   },
   {
     "name": "below chart range",
-    "prompt": "The condensing pressure is -10 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is -10 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "outside"
   },
   {
     "name": "no matching choice",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "7°F",
-      "21°F"
+      "7\u00b0F",
+      "21\u00b0F"
     ],
     "error": "exactly one choice"
   },
   {
     "name": "duplicate matching choice",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "12°F"
+      "12\u00b0F",
+      "12\u00b0F"
     ],
     "error": "exactly one choice"
   },
   {
     "name": "Celsius rejected",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 42°C. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 42\u00b0C. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
-    "error": "°F"
+    "error": "\u00b0F"
   },
   {
     "name": "multiple temperatures",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser? Liquid-line temperature is 105°F.",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser? Liquid-line temperature is 105\u00b0F.",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "multiple temperatures"
   },
   {
     "name": "multiple pressures",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser? Another pressure is 100 psig.",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser? Another pressure is 100 psig.",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "one gauge pressure"
   },
   {
     "name": "negative subcooling",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 130°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 130\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "above saturation"
   },
   {
     "name": "negated calculation",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. Which choice is NOT how much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. Which choice is NOT how much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "interpretation"
   },
   {
     "name": "nonnumeric choices",
-    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
       "zero",
       "seven"
@@ -158,12 +158,12 @@
   },
   {
     "name": "unqualified psi rejected",
-    "prompt": "The condensing pressure is 417.4 psi for R-410A and the condenser outlet temperature is 108°F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psi for R-410A and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
-      "12°F",
-      "21°F",
-      "42°F",
-      "7°F"
+      "12\u00b0F",
+      "21\u00b0F",
+      "42\u00b0F",
+      "7\u00b0F"
     ],
     "error": "gauge pressure"
   },
@@ -171,66 +171,66 @@
     "name": "direct saturation lookup example",
     "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
     "choices": [
-      "118°F.",
-      "95°F.",
-      "295°F.",
-      "29°F."
+      "118\u00b0F.",
+      "95\u00b0F.",
+      "295\u00b0F.",
+      "29\u00b0F."
     ],
-    "answer": "29°F.",
+    "answer": "29\u00b0F.",
     "reason_pattern": "95.*28.8.*29.0"
   },
   {
     "name": "saturation reversed choices",
     "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
     "choices": [
-      "29°F.",
-      "295°F.",
-      "95°F.",
-      "118°F."
+      "29\u00b0F.",
+      "295\u00b0F.",
+      "95\u00b0F.",
+      "118\u00b0F."
     ],
-    "answer": "29°F.",
+    "answer": "29\u00b0F.",
     "reason_pattern": "95.*28.8.*29.0"
   },
   {
     "name": "superheat vapor dew point",
-    "prompt": "R-410A suction pressure is 95 psig and suction vapor temperature is 40°F. What is the superheat?",
+    "prompt": "R-410A suction pressure is 95 psig and suction vapor temperature is 40\u00b0F. What is the superheat?",
     "choices": [
-      "11°F",
-      "12°F",
-      "29°F",
-      "40°F"
+      "11\u00b0F",
+      "12\u00b0F",
+      "29\u00b0F",
+      "40\u00b0F"
     ],
-    "answer": "11°F",
+    "answer": "11\u00b0F",
     "reason_pattern": "40.*29.0.*11.0"
   },
   {
     "name": "saturation psia unsupported",
     "prompt": "Saturated R-410A at a pressure of 95 psia will change at a temperature of",
     "choices": [
-      "118°F.",
-      "95°F.",
-      "295°F.",
-      "29°F."
+      "118\u00b0F.",
+      "95\u00b0F.",
+      "295\u00b0F.",
+      "29\u00b0F."
     ],
     "error": "gauge pressure"
   },
   {
     "name": "saturation other refrigerant",
-    "prompt": "Saturated R-22 at a pressure of 95 psig will change at a temperature of",
+    "prompt": "Saturated R-134a at a pressure of 95 psig will change at a temperature of",
     "choices": [
-      "118°F.",
-      "95°F.",
-      "295°F.",
-      "29°F."
+      "118\u00b0F.",
+      "95\u00b0F.",
+      "295\u00b0F.",
+      "29\u00b0F."
     ],
-    "error": "R-410A only"
+    "error": "R-410A and R-22 only"
   },
   {
     "name": "saturation no choice",
     "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
     "choices": [
-      "95°F",
-      "118°F"
+      "95\u00b0F",
+      "118\u00b0F"
     ],
     "error": "exactly one choice"
   },
@@ -238,17 +238,17 @@
     "name": "saturation ambiguous phase",
     "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
     "choices": [
-      "28.4°F",
-      "29.4°F"
+      "28.4\u00b0F",
+      "29.4\u00b0F"
     ],
     "error": "specify the phase"
   },
   {
     "name": "superheat negative",
-    "prompt": "R-410A suction pressure is 95 psig and suction vapor temperature is 20°F. What is the superheat?",
+    "prompt": "R-410A suction pressure is 95 psig and suction vapor temperature is 20\u00b0F. What is the superheat?",
     "choices": [
-      "11°F",
-      "12°F"
+      "11\u00b0F",
+      "12\u00b0F"
     ],
     "error": "below saturation"
   },
@@ -256,20 +256,60 @@
     "name": "explicit vapor at dew table lower boundary",
     "prompt": "Saturated R-410A vapor at 10.663869 psig is at what temperature?",
     "choices": [
-      "-40°F",
-      "0°F"
+      "-40\u00b0F",
+      "0\u00b0F"
     ],
-    "answer": "-40°F",
+    "answer": "-40\u00b0F",
     "reason_pattern": "dew-point.*-40.0"
   },
   {
     "name": "explicit liquid at bubble table upper boundary",
     "prompt": "Saturated R-410A liquid at 542.633207 psig is at what temperature?",
     "choices": [
-      "140°F",
-      "0°F"
+      "140\u00b0F",
+      "0\u00b0F"
     ],
-    "answer": "140°F",
+    "answer": "140\u00b0F",
     "reason_pattern": "bubble-point.*140.0"
+  },
+  {
+    "name": "R22 evaporator superheat",
+    "prompt": "The evaporating pressure for R-22 is 76 psig and the evaporator outlet temperature is 58\u00b0F. What is the evaporator superheat?",
+    "choices": [
+      "132\u00b0F",
+      "13\u00b0F",
+      "45\u00b0F",
+      "58\u00b0F"
+    ],
+    "answer": "13\u00b0F",
+    "reason_pattern": "58.*45.0.*13.0"
+  },
+  {
+    "name": "R22 saturation",
+    "prompt": "Saturated R-22 at 76 psig changes at what temperature?",
+    "choices": [
+      "45\u00b0F",
+      "76\u00b0F"
+    ],
+    "answer": "45\u00b0F",
+    "reason_pattern": "45.0"
+  },
+  {
+    "name": "R22 subcooling",
+    "prompt": "R-22 condenser pressure is 76 psig and condenser outlet temperature is 32\u00b0F. Calculate subcooling.",
+    "choices": [
+      "13\u00b0F",
+      "32\u00b0F"
+    ],
+    "answer": "13\u00b0F",
+    "reason_pattern": "45.0.*32.*13.0"
+  },
+  {
+    "name": "mixed fluids rejected",
+    "prompt": "R-22 and R-410A evaporator pressure is 76 psig and outlet temperature is 58\u00b0F. What is superheat?",
+    "choices": [
+      "13\u00b0F"
+    ],
+    "error": "one supported refrigerant"
   }
 ]

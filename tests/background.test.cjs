@@ -48,7 +48,7 @@ function harness({questionData, switchToTextbookOnFetch = false, assistanceMode 
   const context = vm.createContext({chrome, crypto: {randomUUID: () => `entry-${requests.length}`},
     setTimeout: fn => queueMicrotask(fn), AbortSignal, Date, TextEncoder,
     fetch: async (_url, request) => {
-      if (_url === 'chrome-extension://test/data/r410a-pt.json') return {ok: true, json: async () => JSON.parse(fs.readFileSync(path.join(__dirname, '../extension/data/r410a-pt.json'), 'utf8'))};
+      if (/^chrome-extension:\/\/test\/data\/(r410a|r22)-pt\.json$/.test(_url)) return {ok: true, json: async () => JSON.parse(fs.readFileSync(path.join(__dirname, '../extension/data/', _url.split('/').at(-1)), 'utf8'))};
       const body = JSON.parse(request.body); requests.push(body);
       if (switchToTextbookOnFetch) await new Promise(resolve => listener({action: 'setAssistanceMode', mode: 'textbook'}, {id: 'test'}, resolve));
       if (disagreement) return {ok: false, json: async () => ({error: 'Textbook reference could not support an answer. Review manually.'})};
@@ -282,10 +282,10 @@ test('AI mode calculator bypasses model and preserves answer verification', asyn
 });
 test('unsupported subcooling lookup stops without an AI request', async () => {
   const app = harness({questionData: {
-    prompt: 'R-22 condensing pressure is 417.4 psig and condenser outlet temperature is 108°F. Calculate subcooling.',
+    prompt: 'R-134a condensing pressure is 417.4 psig and condenser outlet temperature is 108°F. Calculate subcooling.',
     choices: ['12°F', '21°F']}});
   const result = await app.command({action: 'analyze', tabId: 1});
-  assert.match(result.error, /supports R-410A only/);
+  assert.match(result.error, /supports R-410A and R-22 only/);
   assert.equal(app.requests.length, 0);
 });
 
@@ -326,4 +326,10 @@ test('superheat uses dew-point subtraction instead of AI',async()=>{
  assert.match(result.message,/Calculated answer: 11°F/);
  assert.match(result.message,/Superheat = 40 − 29.0/);
  assert.equal(app.requests.length,0);
+});
+
+for (const assistanceMode of ['ai', 'textbook']) test('R22 superheat without AI: ' + assistanceMode, async () => {
+ const app = harness({assistanceMode, questionData: {prompt: 'The evaporating pressure for R-22 is 76 psig and the evaporator outlet temperature is 58°F. What is the evaporator superheat?', choices: ['132°F', '13°F', '45°F', '58°F']}});
+ const result = await app.command({action: 'analyze', tabId: 1});
+ assert.match(result.message, /13°F/); assert.equal(app.requests.length, 0);
 });

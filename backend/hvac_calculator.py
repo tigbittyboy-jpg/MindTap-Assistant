@@ -5,6 +5,7 @@ from pathlib import Path
 
 TABLE = json.loads((Path(__file__).resolve().parents[1] / 'extension/data/r410a-pt.json').read_text())
 
+TABLES = {name: json.loads((Path(__file__).resolve().parents[1] / f'extension/data/{filename}-pt.json').read_text()) for name, filename in [('R-410A', 'r410a'), ('R-22', 'r22')]}
 
 def calculate_hvac(question):
     prompt = question['prompt'].replace('−', '-')
@@ -20,8 +21,11 @@ def calculate_hvac(question):
         raise ValueError(kind.capitalize() + ' calculation paused: ' + message)
     if has(r'\b(?:not|except)\b') or (sub and superheat):
         fail('the question needs interpretation beyond one direct calculation.')
-    if not has(r'\br\s*-?\s*410a\b') or has(r'\br\s*-?\s*(?!410a\b)\d{2,4}[a-z]*\b'):
-        fail('the bundled lookup supports R-410A only. Review the refrigerant chart manually.')
+    fluids = {'R-' + match.upper() for match in re.findall(r'\br\s*-?\s*(\d{2,4}[a-z]*)\b', re.sub('[−–‑]', '-', prompt), re.I)}
+    if len(fluids) != 1 or next(iter(fluids)) not in TABLES:
+        fail('the bundled lookup supports R-410A and R-22 only. Identify one supported refrigerant or review the chart manually.')
+    fluid = next(iter(fluids))
+    table = TABLES[fluid]
     if kind == 'subcooling' and (not has(r'\b(?:condenser|liquid[- ]line)\b') or not has(r'\b(?:outlet|liquid[- ]line)\b')):
         fail('identify a condenser outlet or liquid-line temperature.')
     if kind == 'superheat' and not has(r'\b(?:suction|vapor|vapour|gas|evaporator)\b'):
@@ -56,31 +60,31 @@ def calculate_hvac(question):
         if liquid and vapor:
             fail('specify one liquid/bubble or vapor/dew saturation point.')
         if liquid or vapor:
-            saturation = lookup(TABLE.get('dew_points') if vapor else TABLE['points'])
+            saturation = lookup(table.get('dew_points') if vapor else table['points'])
             index = choice_for(saturation)
             phase = 'dew' if vapor else 'bubble'
-            explanation = f'R-410A {phase}-point saturation ≈ {saturation:.1f}°F at {pressure:g} psig; matching choice: {question["choices"][index]}.'
+            explanation = f'{fluid} {phase}-point saturation ≈ {saturation:.1f}°F at {pressure:g} psig; matching choice: {question["choices"][index]}.'
         else:
-            bubble, dew = lookup(TABLE['points']), lookup(TABLE.get('dew_points'))
+            bubble, dew = lookup(table['points']), lookup(table.get('dew_points'))
             index = choice_for(bubble)
             if choice_for(dew) != index:
                 fail('bubble and dew points select different choices; specify the phase.')
-            explanation = f'R-410A at {pressure:g} psig: bubble ≈ {bubble:.1f}°F, dew ≈ {dew:.1f}°F. The matching choice is {question["choices"][index]}; pressure is not a temperature.'
+            explanation = f'{fluid} at {pressure:g} psig: bubble ≈ {bubble:.1f}°F, dew ≈ {dew:.1f}°F. The matching choice is {question["choices"][index]}; pressure is not a temperature.'
     else:
         measured = float(temperatures[0][0])
-        saturation = lookup(TABLE['points'] if kind == 'subcooling' else TABLE.get('dew_points'))
+        saturation = lookup(table['points'] if kind == 'subcooling' else table.get('dew_points'))
         value = saturation - measured if kind == 'subcooling' else measured - saturation
         if value < 0:
             fail('the measured temperature is above saturation; these inputs do not describe subcooled liquid.' if kind == 'subcooling' else 'the measured temperature is below saturation; these inputs do not describe superheated vapor.')
         index = choice_for(value)
         if kind == 'subcooling':
-            explanation = f'R-410A saturation ≈ {saturation:.1f}°F at {pressure:g} psig. Subcooling = {saturation:.1f} − {measured:g} ≈ {value:.1f}°F; closest choice: {question["choices"][index]}.'
+            explanation = f'{fluid} saturation ≈ {saturation:.1f}°F at {pressure:g} psig. Subcooling = {saturation:.1f} − {measured:g} ≈ {value:.1f}°F; closest choice: {question["choices"][index]}.'
         else:
-            explanation = f'R-410A dew-point saturation ≈ {saturation:.1f}°F at {pressure:g} psig. Superheat = {measured:g} − {saturation:.1f} ≈ {value:.1f}°F; closest choice: {question["choices"][index]}.'
+            explanation = f'{fluid} dew-point saturation ≈ {saturation:.1f}°F at {pressure:g} psig. Superheat = {measured:g} − {saturation:.1f} ≈ {value:.1f}°F; closest choice: {question["choices"][index]}.'
     return {'index': index, 'answer_text': question['choices'][index], 'confidence': 1,
             'calculated': True, 'provider': 'calculator', 'analysis_mode': 'single_pass',
             'reference_count': len(question.get('references', [])), 'cached': False,
-            'explanation': explanation, 'calculation_source': TABLE['source'], 'calculation_source_url': TABLE['source_url']}
+            'explanation': explanation, 'calculation_source': table['source'], 'calculation_source_url': table['source_url']}
 
 
 calculate_subcooling = calculate_hvac  # Backward-compatible entry point for existing checks.

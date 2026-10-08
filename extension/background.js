@@ -197,15 +197,18 @@ function textbookTextMatch(data, references) {
   }
   return matches.length === 1 ? matches[0] : null;
 }
-let ptTable;
+const ptTables = {};
 async function calculateQuestion(data) {
   if (!hvacCalculator.kind(data.prompt)) return null;
-  if (!ptTable) {
-    const response = await fetch(chrome.runtime.getURL('data/r410a-pt.json'));
+  const fluid = hvacCalculator.refrigerant(data.prompt);
+  const file = {'R-410A': 'r410a', 'R-22': 'r22'}[fluid];
+  if (!file) return hvacCalculator.calculateHVAC(data, {});
+  if (!ptTables[fluid]) {
+    const response = await fetch(chrome.runtime.getURL(`data/${file}-pt.json`));
     if (!response.ok) throw Error('Bundled pressure–temperature table could not be loaded. Reload the extension.');
-    ptTable = await response.json();
+    ptTables[fluid] = await response.json();
   }
-  return hvacCalculator.calculateHVAC(data, ptTable);
+  return hvacCalculator.calculateHVAC(data, ptTables[fluid]);
 }
 async function lookupTextbook(tabId) {
   suggestions.delete(tabId);
@@ -214,7 +217,7 @@ async function lookupTextbook(tabId) {
   const calculated = await calculateQuestion(data);
   if (calculated) {
     const references = findReferences(data, textbookSections);
-    return report(`Calculated answer: ${calculated.answer_text}\nWhy: ${calculated.explanation}\nSource: ${calculated.calculation_source}\n\n` + (references.length ? references.map(item => `${item.source}\n${item.text}`).join('\n\n') : 'No matching saved passages needed; used the bundled R-410A lookup.'));
+    return report(`Calculated answer: ${calculated.answer_text}\nWhy: ${calculated.explanation}\nSource: ${calculated.calculation_source}\n\n` + (references.length ? references.map(item => `${item.source}\n${item.text}`).join('\n\n') : 'No matching saved passages needed; used the bundled refrigerant lookup.'));
   }
   if (!textbookSections.length) return report('No textbook sections saved yet. Open your textbook sections with auto-save on, then return here and find passages. No AI or backend is needed.');
   const references = findReferences(data, textbookSections);
@@ -299,7 +302,7 @@ async function analyze(tabId) {
   if (await assistanceMode() !== 'ai') throw Error('Switched to textbook-only mode; AI suggestion discarded.');
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`${answer.calculated ? "Calculated answer" : "Suggestion"}: ${data.choices[answer.index]}\n${answer.calculated ? "Source: " + answer.calculation_source : "Confidence (AI estimate): " + Math.round(answer.confidence * 100) + "%"}\n${answer.explanation}\n${answer.cached ? "Cached answer reused.\n" : ""}\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : answer.calculated ? "Used bundled R-410A PT lookup; no AI generation." : "No matching saved textbook excerpts; answered from model knowledge."}`);
+  await report(`${answer.calculated ? "Calculated answer" : "Suggestion"}: ${data.choices[answer.index]}\n${answer.calculated ? "Source: " + answer.calculation_source : "Confidence (AI estimate): " + Math.round(answer.confidence * 100) + "%"}\n${answer.explanation}\n${answer.cached ? "Cached answer reused.\n" : ""}\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : answer.calculated ? "Used bundled refrigerant PT lookup; no AI generation." : "No matching saved textbook excerpts; answered from model knowledge."}`);
   return suggestion;
 }
 async function automate(tabId) {

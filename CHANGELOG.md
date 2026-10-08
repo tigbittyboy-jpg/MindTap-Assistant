@@ -1,3 +1,9 @@
+# v0.6.10
+
+- Added verified R-22 pressure–temperature data for saturation, superheat, and subcooling in both modes.
+- R-22 at 76 psig with a 58°F evaporator outlet now calculates 13°F superheat without AI.
+- Reject mixed refrigerants and mismatched tables. Update the extension and restart the backend.
+
 # Release notes
 
 ## v0.6.9
