@@ -166,5 +166,110 @@
       "7°F"
     ],
     "error": "gauge pressure"
+  },
+  {
+    "name": "direct saturation lookup example",
+    "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
+    "choices": [
+      "118°F.",
+      "95°F.",
+      "295°F.",
+      "29°F."
+    ],
+    "answer": "29°F.",
+    "reason_pattern": "95.*28.8.*29.0"
+  },
+  {
+    "name": "saturation reversed choices",
+    "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
+    "choices": [
+      "29°F.",
+      "295°F.",
+      "95°F.",
+      "118°F."
+    ],
+    "answer": "29°F.",
+    "reason_pattern": "95.*28.8.*29.0"
+  },
+  {
+    "name": "superheat vapor dew point",
+    "prompt": "R-410A suction pressure is 95 psig and suction vapor temperature is 40°F. What is the superheat?",
+    "choices": [
+      "11°F",
+      "12°F",
+      "29°F",
+      "40°F"
+    ],
+    "answer": "11°F",
+    "reason_pattern": "40.*29.0.*11.0"
+  },
+  {
+    "name": "saturation psia unsupported",
+    "prompt": "Saturated R-410A at a pressure of 95 psia will change at a temperature of",
+    "choices": [
+      "118°F.",
+      "95°F.",
+      "295°F.",
+      "29°F."
+    ],
+    "error": "gauge pressure"
+  },
+  {
+    "name": "saturation other refrigerant",
+    "prompt": "Saturated R-22 at a pressure of 95 psig will change at a temperature of",
+    "choices": [
+      "118°F.",
+      "95°F.",
+      "295°F.",
+      "29°F."
+    ],
+    "error": "R-410A only"
+  },
+  {
+    "name": "saturation no choice",
+    "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
+    "choices": [
+      "95°F",
+      "118°F"
+    ],
+    "error": "exactly one choice"
+  },
+  {
+    "name": "saturation ambiguous phase",
+    "prompt": "Saturated R-410A at a pressure of 95 psig will change at a temperature of",
+    "choices": [
+      "28.4°F",
+      "29.4°F"
+    ],
+    "error": "specify the phase"
+  },
+  {
+    "name": "superheat negative",
+    "prompt": "R-410A suction pressure is 95 psig and suction vapor temperature is 20°F. What is the superheat?",
+    "choices": [
+      "11°F",
+      "12°F"
+    ],
+    "error": "below saturation"
+  },
+  {
+    "name": "explicit vapor at dew table lower boundary",
+    "prompt": "Saturated R-410A vapor at 10.663869 psig is at what temperature?",
+    "choices": [
+      "-40°F",
+      "0°F"
+    ],
+    "answer": "-40°F",
+    "reason_pattern": "dew-point.*-40.0"
+  },
+  {
+    "name": "explicit liquid at bubble table upper boundary",
+    "prompt": "Saturated R-410A liquid at 542.633207 psig is at what temperature?",
+    "choices": [
+      "140°F",
+      "0°F"
+    ],
+    "answer": "140°F",
+    "reason_pattern": "bubble-point.*140.0"
   }
 ]

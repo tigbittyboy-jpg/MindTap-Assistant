@@ -1,4 +1,4 @@
-"""Deterministic R-410A subcooling, sharing the browser's bundled EOS table."""
+"""Pressure/temperature formula engine using the browser's bundled bubble/dew data."""
 import json
 import re
 from pathlib import Path
@@ -6,47 +6,81 @@ from pathlib import Path
 TABLE = json.loads((Path(__file__).resolve().parents[1] / 'extension/data/r410a-pt.json').read_text())
 
 
-def calculate_subcooling(question):
+def calculate_hvac(question):
     prompt = question['prompt'].replace('−', '-')
-    if not re.search(r'\bsub[- ]?cool(?:ing|ed)?\b', prompt, re.I) or not re.search(r'\b(?:psig|psia|psi|bar|kpa)\b', prompt, re.I):
+    def has(pattern):
+        return bool(re.search(pattern, prompt, re.I))
+    if not has(r'\b(?:psig|psia|psi|bar|kpa)\b'):
+        return None
+    sub, superheat = has(r'\bsub[- ]?cool(?:ing|ed)?\b'), has(r'\bsuperheat(?:ing)?\b')
+    kind = 'subcooling' if sub else 'superheat' if superheat else 'saturation' if has(r'\b(?:saturated|saturation|boil(?:ing)?|condens(?:ing|ation))\b') and has(r'\btemperature\b') else None
+    if not kind:
         return None
     def fail(message):
-        raise ValueError('Subcooling calculation paused: ' + message)
-    if re.search(r'\b(?:not|except|superheat)\b', prompt, re.I):
-        fail('the question needs interpretation beyond a direct subcooling calculation.')
-    if not re.search(r'\br\s*-?\s*410a\b', prompt, re.I) or re.search(r'\br\s*-?\s*(?!410a\b)\d{2,4}[a-z]*\b', prompt, re.I):
+        raise ValueError(kind.capitalize() + ' calculation paused: ' + message)
+    if has(r'\b(?:not|except)\b') or (sub and superheat):
+        fail('the question needs interpretation beyond one direct calculation.')
+    if not has(r'\br\s*-?\s*410a\b') or has(r'\br\s*-?\s*(?!410a\b)\d{2,4}[a-z]*\b'):
         fail('the bundled lookup supports R-410A only. Review the refrigerant chart manually.')
-    if not re.search(r'\b(?:condenser|liquid[- ]line)\b', prompt, re.I) or not re.search(r'\b(?:outlet|liquid[- ]line)\b', prompt, re.I):
+    if kind == 'subcooling' and (not has(r'\b(?:condenser|liquid[- ]line)\b') or not has(r'\b(?:outlet|liquid[- ]line)\b')):
         fail('identify a condenser outlet or liquid-line temperature.')
+    if kind == 'superheat' and not has(r'\b(?:suction|vapor|vapour|gas|evaporator)\b'):
+        fail('identify a measured vapor/suction temperature.')
     pressures = re.findall(r'(-?\d+(?:\.\d+)?)\s*(psig|psia|psi|bar|kpa)\b', prompt, re.I)
     temperatures = re.findall(r'(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?(f(?:ahrenheit)?|c(?:elsius)?)\b', prompt, re.I)
     if len(pressures) != 1 or pressures[0][1].lower() != 'psig':
         fail('supply one gauge pressure in psig; psia and other units are not supported yet.')
-    if len(temperatures) != 1 or not temperatures[0][1].lower().startswith('f'):
-        fail('supply one liquid temperature in °F; multiple temperatures and Celsius need manual review.')
-    pressure, liquid = float(pressures[0][0]), float(temperatures[0][0])
-    rows = TABLE['points']
-    if not rows[0][0] <= pressure <= rows[-1][0]:
-        fail('pressure is outside the bundled table range.')
-    upper = next(index for index, row in enumerate(rows) if row[0] >= pressure)
-    p2, t2 = rows[upper]
-    p1, t1 = rows[max(0, upper - 1)]
-    saturation = t2 if p1 == p2 else t1 + (pressure - p1) * (t2 - t1) / (p2 - p1)
-    result = saturation - liquid
-    if result < 0:
-        fail('the measured temperature is above saturation; these inputs do not describe subcooled liquid.')
-    matches = []
-    for index, choice in enumerate(question['choices']):
-        match = re.fullmatch(r'\s*(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?f(?:ahrenheit)?\s*', choice.replace('−', '-'), re.I)
-        if not match:
-            fail('answer choices must be temperatures in °F.')
-        if abs(float(match[1]) - result) <= .5:
-            matches.append(index)
-    if len(matches) != 1:
-        fail('the result does not match exactly one choice within 0.5°F.')
-    index = matches[0]
+    if (len(temperatures) != 0 if kind == 'saturation' else len(temperatures) != 1 or not temperatures[0][1].lower().startswith('f')):
+        fail('supply one measured temperature in °F for subcooling/superheat, or none for a pressure-only lookup; multiple temperatures and Celsius need manual review.')
+    pressure = float(pressures[0][0])
+    def lookup(rows):
+        if not rows or not rows[0][0] <= pressure <= rows[-1][0]:
+            fail('pressure is outside the bundled table range.')
+        upper = next(index for index, row in enumerate(rows) if row[0] >= pressure)
+        p2, t2 = rows[upper]
+        p1, t1 = rows[max(0, upper - 1)]
+        return t2 if p1 == p2 else t1 + (pressure - p1) * (t2 - t1) / (p2 - p1)
+    def choice_for(value):
+        matches = []
+        for index, choice in enumerate(question['choices']):
+            match = re.fullmatch(r'\s*(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?f(?:ahrenheit)?\s*\.?\s*', choice.replace('−', '-'), re.I)
+            if not match:
+                fail('answer choices must be temperatures in °F.')
+            if abs(float(match[1]) - value) <= .5:
+                matches.append(index)
+        if len(matches) != 1:
+            fail('the result does not match exactly one choice within 0.5°F.')
+        return matches[0]
+    if kind == 'saturation':
+        liquid, vapor = has(r'\b(?:liquid|bubble)\b'), has(r'\b(?:vapor|vapour|dew)\b')
+        if liquid and vapor:
+            fail('specify one liquid/bubble or vapor/dew saturation point.')
+        if liquid or vapor:
+            saturation = lookup(TABLE.get('dew_points') if vapor else TABLE['points'])
+            index = choice_for(saturation)
+            phase = 'dew' if vapor else 'bubble'
+            explanation = f'R-410A {phase}-point saturation ≈ {saturation:.1f}°F at {pressure:g} psig; matching choice: {question["choices"][index]}.'
+        else:
+            bubble, dew = lookup(TABLE['points']), lookup(TABLE.get('dew_points'))
+            index = choice_for(bubble)
+            if choice_for(dew) != index:
+                fail('bubble and dew points select different choices; specify the phase.')
+            explanation = f'R-410A at {pressure:g} psig: bubble ≈ {bubble:.1f}°F, dew ≈ {dew:.1f}°F. The matching choice is {question["choices"][index]}; pressure is not a temperature.'
+    else:
+        measured = float(temperatures[0][0])
+        saturation = lookup(TABLE['points'] if kind == 'subcooling' else TABLE.get('dew_points'))
+        value = saturation - measured if kind == 'subcooling' else measured - saturation
+        if value < 0:
+            fail('the measured temperature is above saturation; these inputs do not describe subcooled liquid.' if kind == 'subcooling' else 'the measured temperature is below saturation; these inputs do not describe superheated vapor.')
+        index = choice_for(value)
+        if kind == 'subcooling':
+            explanation = f'R-410A saturation ≈ {saturation:.1f}°F at {pressure:g} psig. Subcooling = {saturation:.1f} − {measured:g} ≈ {value:.1f}°F; closest choice: {question["choices"][index]}.'
+        else:
+            explanation = f'R-410A dew-point saturation ≈ {saturation:.1f}°F at {pressure:g} psig. Superheat = {measured:g} − {saturation:.1f} ≈ {value:.1f}°F; closest choice: {question["choices"][index]}.'
     return {'index': index, 'answer_text': question['choices'][index], 'confidence': 1,
             'calculated': True, 'provider': 'calculator', 'analysis_mode': 'single_pass',
             'reference_count': len(question.get('references', [])), 'cached': False,
-            'explanation': f'R-410A saturation ≈ {saturation:.1f}°F at {pressure:g} psig. Subcooling = {saturation:.1f} − {liquid:g} ≈ {result:.1f}°F; closest choice: {question["choices"][index]}.',
-            'calculation_source': TABLE['source'], 'calculation_source_url': TABLE['source_url']}
+            'explanation': explanation, 'calculation_source': TABLE['source'], 'calculation_source_url': TABLE['source_url']}
+
+
+calculate_subcooling = calculate_hvac  # Backward-compatible entry point for existing checks.

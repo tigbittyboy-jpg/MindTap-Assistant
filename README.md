@@ -1,10 +1,10 @@
-# MindTap Assistant — v0.6.8
+# MindTap Assistant — v0.6.9
 
 A study helper for your MindTap questions and textbook.
 
 **Start with the easy setup below. You do not need Terminal, Python, or AI for it.**
 
-[Download v0.6.8](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.8.zip)
+[Download v0.6.9](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.9.zip)
 
 ## Easy setup: textbook mode
 
@@ -12,10 +12,10 @@ These steps work on **Mac and Windows**. You need **Google Chrome** and access t
 
 ### 1. Download and open the folder
 
-1. Click **Download v0.6.8** above.
+1. Click **Download v0.6.9** above.
 2. Open your computer's **Downloads** folder.
 3. Open the downloaded ZIP. On a Mac, double-click it. On Windows, right-click it and choose **Extract All**.
-4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.8**.
+4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.9**.
 5. You should see **backend**, **extension**, and this README inside it.
 6. Move this whole folder somewhere you will keep it, such as **Documents**. You can rename it **MindTap Assistant**.
 
@@ -41,7 +41,7 @@ MindTap Assistant
 
 **Do not select the ZIP, the backend folder, or the big outer folder.**
 
-You should now see a card called **MindTap Study Assistant**, with version **0.6.8**.
+You should now see a card called **MindTap Study Assistant**, with version **0.6.9**.
 
 ### 3. Put its icon beside the address bar
 
@@ -81,7 +81,7 @@ It saves the sections you open. **It does not download the whole book.** Each cl
 
 Sometimes it shows a **Possible answer (text match)** and a short reason. It recognizes same-capacity compressor size comparisons with nearby “these compressors” context, some equivalent phase wording, checks the asked component inlet/outlet, and can connect a relevant subcooling definition to the expected subcooled-liquid state. When it uses that definition, the result is labeled **Possible answer (HVAC rule)** and explains the rule. This means one choice matched the saved text; it is not a guaranteed correct answer. If it cannot find a clear match, it shows passages for you to read.
 
-It can also calculate supported **R-410A subcooling** questions without AI. See [calculator details](#calculator-details) below.
+It can also calculate supported **R-410A saturation temperatures, subcooling, and superheat** without AI. See [calculator details](#calculator-details) below.
 
 **Textbook-mode setup is finished. Skip the AI steps unless you want AI answers.**
 
@@ -320,13 +320,19 @@ Saved sections stay in this extension's local Chrome storage. They are not autom
 
 ## Calculator details
 
-The built-in calculator supports **R-410A subcooling** with one pressure in **psig**, one condenser outlet/liquid-line temperature in **°F**, and temperature answer choices.
+The built-in formula engine supports **R-410A** questions using one pressure in **psig** and temperature answer choices in **°F**:
 
-**Subcooling = saturation temperature − liquid temperature.**
+- **Saturation temperature:** look up the temperature for the stated pressure. Pressure is not a temperature: **95 psig → about 29°F**, not 95°F or 118°F.
+- **Subcooling:** bubble-point saturation temperature **minus** measured liquid temperature.
+- **Superheat:** measured vapor temperature **minus** dew-point saturation temperature.
 
-It uses a bundled bubble-point table from [CoolProp 7.2.0's R410A model](https://coolprop.org/fluid_properties/fluids/R410A.html), covering −40°F through 140°F. A choice must uniquely match within 0.5°F. For **417.4 psig** and **108°F**, it calculates about **11.6°F**, matching the rounded choice **12°F**. Charts can differ slightly.
+Subcooling and superheat need one measured temperature in °F, identified as liquid/outlet or vapor/suction temperature respectively. The AI receives these formulas and unit rules too; supported numerical questions use the formula engine directly without generating an AI answer.
 
-Other refrigerants, Celsius, psia, multiple measured temperatures, and superheat need manual review. You do not need to install CoolProp to use the calculator.
+Both phases use bundled [CoolProp 7.2.0 R410A data](https://coolprop.org/fluid_properties/fluids/R410A.html), covering −40°F through 140°F. A choice must uniquely match within 0.5°F. If a saturation question does not specify liquid or vapor, both points must select the same choice. Charts can differ slightly.
+
+For **417.4 psig** and a liquid temperature of **108°F**, subcooling is about **11.6°F**, matching the rounded choice **12°F**. For **95 psig** and suction vapor at **40°F**, superheat is about **11°F**.
+
+Other refrigerants, Celsius, psia, multiple pressures or measured temperatures, and ambiguous choices need manual review. You do not need to install CoolProp to use the engine.
 
 ## AI speed settings
 

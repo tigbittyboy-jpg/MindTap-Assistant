@@ -199,13 +199,13 @@ function textbookTextMatch(data, references) {
 }
 let ptTable;
 async function calculateQuestion(data) {
-  if (!/\bsub[- ]?cool(?:ing|ed)?\b/i.test(data.prompt) || !/\b(?:psig|psia|psi|bar|kpa)\b/i.test(data.prompt)) return null;
+  if (!hvacCalculator.kind(data.prompt)) return null;
   if (!ptTable) {
     const response = await fetch(chrome.runtime.getURL('data/r410a-pt.json'));
     if (!response.ok) throw Error('Bundled pressure–temperature table could not be loaded. Reload the extension.');
     ptTable = await response.json();
   }
-  return hvacCalculator.calculateSubcooling(data, ptTable);
+  return hvacCalculator.calculateHVAC(data, ptTable);
 }
 async function lookupTextbook(tabId) {
   suggestions.delete(tabId);

@@ -311,3 +311,19 @@ test('actual rotary comparison is resolved through retrieval without AI',async()
  assert.match(result.message,/same capacity/);
  assert.equal(app.requests.length,0);
 });
+test('pressure-only saturation example bypasses AI in both modes',async()=>{
+ for(const assistanceMode of ['ai','textbook']){
+  const app=harness({assistanceMode,questionData:{prompt:'Saturated R-410A at a pressure of 95 psig will change at a temperature of',choices:['118°F.','95°F.','295°F.','29°F.']}});
+  const result=await app.command({action:'analyze',tabId:1});
+  assert.match(result.message,/Calculated answer: 29°F/);
+  assert.match(result.message,/bubble ≈ 28.8°F, dew ≈ 29.0°F/);
+  assert.equal(app.requests.length,0);
+ }
+});
+test('superheat uses dew-point subtraction instead of AI',async()=>{
+ const app=harness({questionData:{prompt:'R-410A suction pressure is 95 psig and vapor temperature is 40°F. How much superheat is there?',choices:['11°F','12°F','29°F','40°F']}});
+ const result=await app.command({action:'analyze',tabId:1});
+ assert.match(result.message,/Calculated answer: 11°F/);
+ assert.match(result.message,/Superheat = 40 − 29.0/);
+ assert.equal(app.requests.length,0);
+});

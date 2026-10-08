@@ -87,6 +87,9 @@ class OllamaIntegrationTests(unittest.TestCase):
         self.assertEqual(len(self.payloads), 1)
         instructions = self.payloads[0][1]['messages'][0]['content']
         self.assertIn('stationary refrigeration', instructions)
+        self.assertIn('subcooling = bubble-point saturation temperature minus measured liquid temperature', instructions)
+        self.assertIn('superheat = measured vapor temperature minus dew-point saturation temperature', instructions)
+        self.assertIn('never treat a psig number as a Fahrenheit temperature', instructions)
         self.assertIn('unless the question explicitly specifies automotive', instructions)
         self.assertIn('If your explanation rules out a choice, do not select it', instructions)
 

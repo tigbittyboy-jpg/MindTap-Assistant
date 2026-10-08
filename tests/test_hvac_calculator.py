@@ -23,7 +23,7 @@ class SubcoolingTests(unittest.TestCase):
                     continue
                 self.assertEqual(answer['answer_text'], case['answer'])
                 self.assertEqual(answer['index'], case['choices'].index(case['answer']))
-                self.assertIn('11.6°F', answer['explanation'])
+                self.assertRegex(answer['explanation'], case.get('reason_pattern', '119.6.*108.*11.6'))
 
     @patch('backend.server.ollama_json')
     def test_backend_calculates_and_declines_bad_inputs_without_ollama(self, fetch):

@@ -10,9 +10,9 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 if __package__:
-    from .hvac_calculator import calculate_subcooling
+    from .hvac_calculator import calculate_hvac
 else:
-    from hvac_calculator import calculate_subcooling
+    from hvac_calculator import calculate_hvac
 
 
 def validate_question(data):
@@ -45,6 +45,11 @@ ANSWER_INSTRUCTIONS = (
     'Interpret air-conditioning as building HVAC unless the question explicitly specifies automotive or vehicle systems. '
     'Do not substitute a refrigerant used in automotive systems for one intended for the building HVAC application in the question. '
     'Match the exact application and refrigerant designation; a low GWP alone does not establish suitability as a replacement. '
+    'HVAC formulas: subcooling = bubble-point saturation temperature minus measured liquid temperature; '
+    'superheat = measured vapor temperature minus dew-point saturation temperature. Use the appropriate refrigerant PT table '
+    'to obtain saturation temperature at the stated pressure; never treat a psig number as a Fahrenheit temperature. '
+    'For blends use bubble for liquid and dew for vapor. Keep pressure units distinct from temperature units. '
+    'Only plug in known values with consistent units. If a needed PT value is missing, state that instead of inventing it. '
     'Pay attention to NOT, EXCEPT, units, signs, exponents, and required rounding. For calculations, include the formula and result in a concise explanation. '
     'Compare the result against all choices, then return the zero-based index and answer_text copied EXACTLY from that same choice. '
     'Before returning, check within this same response that the selected choice agrees with the decisive facts in your explanation. '
@@ -169,7 +174,7 @@ def cached_answer(key):
 def analyze(data):
     global cache_bytes
     question = validate_question(data)
-    calculated = calculate_subcooling(question)
+    calculated = calculate_hvac(question)
     if calculated is not None:
         return calculated
     settings = generation_settings()

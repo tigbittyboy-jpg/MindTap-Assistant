@@ -15,7 +15,7 @@ for (const fixture of cases) test('browser subcooling: ' + fixture.name, () => {
   assert.equal(answer.answer_text, fixture.answer);
   assert.equal(answer.index, fixture.choices.indexOf(fixture.answer));
   assert.equal(answer.calculated, true);
-  assert.match(answer.explanation, /119.6.*108.*11.6/);
+  assert.match(answer.explanation, new RegExp(fixture.reason_pattern || '119.6.*108.*11.6'));
 });
 test('bundled table uses ascending bubble-point psig values and expected span', () => {
   assert.equal(table.points.length, 181);

@@ -1,5 +1,13 @@
 # Release notes
 
+## v0.6.9
+
+- Route R-410A saturation-temperature and superheat questions through the shared formula engine alongside subcooling.
+- Bundle dew-point data for vapor calculations; use bubble-point data for liquid calculations.
+- Add the formulas and pressure/temperature unit rules to the AI instructions.
+- Require supported inputs and one matching choice; no AI guessing for recognized unsupported calculations.
+- Update both extension and backend; restart the backend to apply the AI instructions.
+
 ## v0.6.8
 
 - Match smaller/larger compressor comparisons while preserving which compressor is being compared with which.
