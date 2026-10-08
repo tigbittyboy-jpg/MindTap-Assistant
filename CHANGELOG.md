@@ -1,3 +1,9 @@
+# v0.6.15
+
+- Recognize compressor inlet temperature for total superheat calculations in both modes.
+- Support “compressor inlet” and “inlet of the compressor” without treating the discharge outlet as suction.
+- R-22 at 76 psig with a 65°F compressor inlet calculates 20°F total superheat.
+
 # v0.6.14
 
 - Removed AI answer caching: repeat analyses and simultaneous requests each generate a fresh answer.

@@ -23,7 +23,7 @@
     const fluid = refrigerant(prompt);
     if (!fluid || !table.refrigerant) fail('identify one supported refrigerant; no bundled PT data is available for this selection. Review its chart manually.');
     if (type === 'subcooling' && (!/\b(?:condenser|liquid[- ]line)\b/i.test(prompt) || !/\b(?:outlet|liquid[- ]line)\b/i.test(prompt))) fail('identify a condenser outlet or liquid-line temperature.');
-    if (type === 'superheat' && !/\b(?:suction|vapor|vapour|gas|evaporator)\b/i.test(prompt)) fail('identify a measured vapor/suction temperature.');
+    if (type === 'superheat' && !/\b(?:suction|vapor|vapour|gas|evaporator)\b|\b(?:compressor\s+inlet|inlet\s+(?:of\s+)?(?:the\s+)?compressor)\b/i.test(prompt)) fail('identify a measured vapor/suction temperature.');
     const measurements = prompt.replace(/\br\s*-?\s*c?\d{2,4}[a-z]*(?:\([ez]\))?(?![a-z0-9(])/gi, '');
     const pressures = [...measurements.matchAll(/(-?\d+(?:\.\d+)?)\s*(psig|psia|psi|bar|kpa)\b/gi)];
     const temperatures = [...measurements.matchAll(/(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?(f(?:ahrenheit)?|c(?:elsius)?)\b/gi)];

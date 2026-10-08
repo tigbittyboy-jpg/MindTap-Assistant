@@ -311,5 +311,36 @@
       "13\u00b0F"
     ],
     "error": "one supported refrigerant"
+  },
+  {
+    "name": "compressor inlet total superheat",
+    "prompt": "If the evaporating pressure was 76 psig for R-22 and the compressor inlet temperature was 65\u00b0F, what would be the total superheat entering the compressor?",
+    "choices": [
+      "11\u00b0F",
+      "10\u00b0F",
+      "21\u00b0F",
+      "20\u00b0F"
+    ],
+    "answer": "20\u00b0F",
+    "reason_pattern": "65.*45.0.*20.0"
+  },
+  {
+    "name": "inlet of compressor total superheat",
+    "prompt": "R-22 pressure is 76 psig and the temperature at the inlet of the compressor is 65\u00b0F. What is total superheat?",
+    "choices": [
+      "20\u00b0F",
+      "21\u00b0F"
+    ],
+    "answer": "20\u00b0F",
+    "reason_pattern": "65.*45.0.*20.0"
+  },
+  {
+    "name": "compressor discharge is not suction",
+    "prompt": "R-22 pressure is 76 psig and compressor outlet temperature is 65\u00b0F. What is total superheat?",
+    "choices": [
+      "20\u00b0F",
+      "21\u00b0F"
+    ],
+    "error": "measured vapor/suction"
   }
 ]

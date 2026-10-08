@@ -34,7 +34,7 @@ def calculate_hvac(question):
     table = TABLES[filename]
     if kind == 'subcooling' and (not has(r'\b(?:condenser|liquid[- ]line)\b') or not has(r'\b(?:outlet|liquid[- ]line)\b')):
         fail('identify a condenser outlet or liquid-line temperature.')
-    if kind == 'superheat' and not has(r'\b(?:suction|vapor|vapour|gas|evaporator)\b'):
+    if kind == 'superheat' and not has(r'\b(?:suction|vapor|vapour|gas|evaporator)\b|\b(?:compressor\s+inlet|inlet\s+(?:of\s+)?(?:the\s+)?compressor)\b'):
         fail('identify a measured vapor/suction temperature.')
     measurements = re.sub(r'\br\s*-?\s*c?\d{2,4}[a-z]*(?:\([ez]\))?(?![a-z0-9(])', '', re.sub('[−–‑]', '-', prompt), flags=re.I)
     pressures = re.findall(r'(-?\d+(?:\.\d+)?)\s*(psig|psia|psi|bar|kpa)\b', measurements, re.I)
