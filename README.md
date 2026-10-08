@@ -1,202 +1,257 @@
-# MindTap Assistant — v0.6.4
+# MindTap Assistant — v0.6.5
 
-A Chrome extension with two modes: find saved textbook passages without AI, or ask a local AI model for an answer. It answers in one pass, using matching saved textbook excerpts first. Relevant textbook facts take priority; the model can use its own knowledge when excerpts do not cover the question.
+A study helper for your MindTap questions and textbook.
 
-The model assumes stationary residential and light commercial HVAC, refrigeration, and heat pumps. Automotive context applies only when the question explicitly calls for it.
+**Start with the easy setup below. You do not need Terminal, Python, or AI for it.**
 
-The AI can still be wrong, even with textbook references. 
+[Download v0.6.5](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.5.zip)
 
-## Textbook-only setup: no AI or backend
+## Easy setup: textbook mode
 
-1. Download and unzip the project using the link below.
-2. Open `chrome://extensions`, turn on **Developer mode**, and click **Load unpacked**. Select the **extension** folder inside the project.
-3. Open the assistant and change **Mode** to **Textbook only · no AI needed**. The setting stays saved, including in the detached window.
-4. Open your textbook sections in MindTap with auto-save on. Wait until the textbook progress card says the section is saved. Each classmate builds their own saved library from their textbook access.
-5. Open a multiple-choice question and click **Find textbook passages**. Read the matching passages and section titles, then choose the answer and click Next on the MindTap page.
+You need **Google Chrome** and access to your **MindTap textbook**.
 
-This mode runs entirely in Chrome. Skip the Ollama, Python, and backend steps below. It finds up to three matching passages; it can show a **Possible answer (text match)** with a short matching reason and source sentence when just one choice appears in relevant, non-negated sentences. This is not a verified answer. Ambiguous matches, other numeric questions, True/False, and NOT/EXCEPT questions show passages only. It does not submit answers. Missing matches mean you may need to open more relevant textbook sections. Switching modes stops automation and clears the current suggestion. Existing users stay in Local AI mode until they change the setting.
+### 1. Download and open the folder
 
-## R-410A subcooling calculator
+1. Click **Download v0.6.5** above.
+2. Open your computer's **Downloads** folder.
+3. Open the downloaded ZIP. On a Mac, double-click it. On Windows, right-click it and choose **Extract All**.
+4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.5**.
+5. You should see **backend**, **extension**, and this README inside it.
+6. Move this whole folder somewhere you will keep it, such as **Documents**. You can rename it **MindTap Assistant**.
 
-Both modes can calculate R-410A subcooling without AI: **saturation temperature − condenser outlet/liquid-line temperature**. The browser uses a bundled bubble-point pressure–temperature table generated from CoolProp 7.2.0’s R410A equation of state (Lemmon-IJT-2003). No new dependency is needed. [Source model](https://coolprop.org/fluid_properties/fluids/R410A.html).
+**Keep this folder. Chrome needs it every time you use the extension.**
 
-Supported questions must specify R-410A, one pressure in **psig**, one outlet/liquid-line temperature in **°F**, and temperature answer choices. The table covers −40°F through 140°F; pressure is interpolated, never extrapolated. A choice must uniquely match within 0.5°F. For 417.4 psig and 108°F, the model gives about 119.6°F saturation and 11.6°F subcooling, so the matching rounded choice is **12°F**. Different published charts can differ slightly.
+### 2. Put the extension in Chrome
 
-Unsupported numerical subcooling questions pause for review instead of sending the lookup to AI. Other refrigerants, psia, Celsius, multiple temperatures, and superheat are not supported by this calculator yet. In textbook-only mode, even this calculator needs no backend. Maintainers can regenerate the table with `scripts/build_r410a_table.py`; ordinary users never need CoolProp.
+1. Open **Google Chrome**.
+2. Click the address bar at the top, where website addresses go.
+3. Type `chrome://extensions` and press **Enter**.
+4. Turn on **Developer mode** in the top-right corner.
+5. Click **Load unpacked**.
+6. Find the project folder you just saved.
+7. Open that folder. Select the **extension** folder inside it, then click **Select** or **Select Folder**.
 
-## What you need
+Select this folder:
 
-Textbook-only mode needs Chrome and your textbook access. For optional Local AI mode, use Chrome, Python, and Ollama on the **same computer**. These instructions are for a Mac.
+```text
+MindTap Assistant
+└── extension       ← SELECT THIS FOLDER
+    └── manifest.json
+```
 
-- **Chrome:** your web browser.
-- **Python 3.10 or newer:** install it from [python.org](https://www.python.org/downloads/).
-- **Ollama:** install it from [ollama.com](https://ollama.com/download), then open the app.
+**Do not select the ZIP, the backend folder, or the big outer folder.**
 
-You do not need an API key, Node, or npm to use the extension.
+You should now see a card called **MindTap Study Assistant**, with version **0.6.5**.
 
-## 1. Download the extension
+### 3. Put its icon beside the address bar
 
-1. [Download v0.6.4](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.4.zip).
-2. Double-click the ZIP to unzip it.
-3. Keep the extracted folder somewhere easy to find. Inside it, you should see folders named **backend** and **extension**.
+1. Click Chrome's **puzzle-piece icon** near the top right.
+2. Find **MindTap Study Assistant**.
+3. Click the **pin** beside it.
+4. Click the new book icon to open the assistant.
 
-## 2. Download the AI model (Local AI mode only)
+If Chrome asks for access to Cengage pages, allow it. If access is set to **On click**, open the extension's **Details** at `chrome://extensions` and allow access to the listed Cengage sites.
 
-Open **Terminal** using Spotlight: press **Command + Space**, type **Terminal**, and press Enter.
+### 4. Pick textbook mode
 
-Copy this command into Terminal and press Enter:
+1. At the top of the assistant, find **Mode**.
+2. Choose **Textbook only · no AI needed**.
+3. Make sure **Auto-save opened textbook sections** is checked.
+
+The setting stays saved. You do not need to choose it every time.
+
+### 5. Let it save your textbook pages
+
+1. Sign in to **MindTap**.
+2. Open your **eTextbook**.
+3. Refresh the textbook tab once after installing the extension.
+4. Open a section you want help with. Wait for its words to finish loading.
+5. Check the assistant's **Textbook auto-save** box. Wait until it says **Saved** or **Current section is saved**.
+6. Open the next section you need and wait for it to save too.
+
+It saves the sections you open. **It does not download the whole book.** Each classmate needs to open sections from their own textbook account.
+
+### 6. Use it on a question
+
+1. Open a multiple-choice question in MindTap.
+2. Click the assistant's book icon.
+3. Click **Find textbook passages**.
+4. Read the result and the matching textbook passages.
+5. Select your answer on the **MindTap page**, then click the page's **Next** button.
+
+Sometimes it shows a **Possible answer (text match)** and a short reason. This means one choice matched the saved text; it is not a guaranteed correct answer. If it cannot find a clear match, it shows passages for you to read.
+
+It can also calculate supported **R-410A subcooling** questions without AI. See [calculator details](#calculator-details) below.
+
+**Textbook-mode setup is finished. Skip the AI steps unless you want AI answers.**
+
+## Keep the assistant open
+
+Click **Open in window**. A small separate Chrome window will open.
+
+It follows the active tab in the **original browser window**. Keep that window on your textbook or MindTap question. If you switch it to another website, the assistant will try to read that website instead.
+
+The small window can fall behind other windows; Chrome does not provide an always-on-top option.
+
+## Optional: add AI answers on a Mac
+
+AI mode needs **Ollama**, **Python**, and a running **Terminal** window on the same computer as Chrome. Textbook-only mode does not need any of these.
+
+### A. Install Ollama
+
+1. Go to [ollama.com/download](https://ollama.com/download).
+2. Download the Mac version and install it.
+3. Open **Ollama**. It may appear in the menu bar rather than a normal window.
+4. Follow any first-run instructions. If asked to install its command-line tool, accept.
+
+### B. Install Python
+
+1. Go to [python.org/downloads](https://www.python.org/downloads/).
+2. Download the installer for **macOS**.
+3. Open it and follow the installer steps.
+
+Python **3.10 or newer** is required. A current download is fine.
+
+### C. Download the AI model once
+
+1. Press **Command + Space** on your keyboard.
+2. Type **Terminal**, then press **Enter**.
+3. Copy the command below.
+4. Paste it into Terminal with **Command + V**, then press **Enter**.
 
 ```bash
 ollama pull qwen3:8b
 ```
 
-Wait until it finishes. This is a large download; you usually only need to do it once. Keep the Ollama app open.
+Wait for the download to finish. It is several gigabytes, so this can take a while. You only need to download it once.
 
-## 3. Start the helper
+### D. Tell Terminal where the project is
 
-The helper connects the extension to Ollama. It must stay running while you use the extension.
+1. In Terminal, type `cd ` — the letters **cd**, then **one space**.
+2. **Do not press Enter yet.**
+3. In Finder, find the whole project folder you saved earlier.
+4. Drag that folder into the Terminal window.
+5. Now press **Enter**.
 
-1. In Terminal, type `cd ` with a space after it. Do not press Enter yet.
-2. Drag the extracted project folder from Finder into Terminal.
-3. Press Enter. Terminal is now working inside that folder.
-4. Copy and run these commands:
+Drag the folder that contains **backend** and **extension**. Do not drag the extension folder by itself.
+
+### E. Start the AI helper
+
+Copy this entire block, paste it into Terminal, and press **Enter**:
 
 ```bash
-export OLLAMA_MODEL="qwen3:8b"
+export OLLAMA_MODEL=qwen3:8b
 export OLLAMA_THINK=false
-python3 backend/server.py --check-connection
-```
-
-If it says the connection succeeded and the model is installed, run:
-
-```bash
 python3 backend/server.py
 ```
 
-You should see:
+When it works, you will see:
 
 ```text
 MindTap backend listening on 127.0.0.1:8765 (provider: ollama)
 ```
 
-**Leave this Terminal window open.** To stop the helper, press **Control + C**. The settings above last for that Terminal session.
+**Leave this Terminal window open while using AI mode.** It is supposed to stay busy rather than return to a typing prompt. The helper starts loading the model; the first answer may take longer.
 
-## 4. Add it to Chrome
+To stop it, click its Terminal window and press **Control + C**. Closing it also stops the helper. Later, repeat steps D and E to start it again. Keep Ollama open too.
 
-1. Type `chrome://extensions` into Chrome’s address bar and press Enter.
-2. Turn on **Developer mode** at the top right.
-3. Click **Load unpacked**.
-4. Open your extracted project folder and select the **extension** folder inside it.
-5. Click Chrome’s puzzle-piece icon and pin **MindTap Study Assistant** if you want it on the toolbar.
+### F. Turn on AI mode
 
-Chrome shows version **0.6.4**. The popup badge shows **v0.6.4**.
+1. Open the assistant in Chrome.
+2. Change **Mode** to **Local AI**.
+3. Open a question and click **Analyze question**.
+4. Read the suggested answer and explanation.
+5. Click **Select suggested answer** if you want it selected on the page.
+6. Click **Click Next** to move on after the answer is selected.
 
-## 5. Use it
+Saved textbook sections help AI mode too. AI answers can still be wrong, especially without relevant textbook text.
 
-Open one multiple-choice question in MindTap, then click the extension icon.
+**Automation On** starts selecting answers and advancing immediately. **Automation Off** stops it before its next action. At the end, automation can click **Review → Finish**, which may submit the activity. Closing the assistant does not stop automation; use the switch. It does not click a separate **Check Answer** button.
 
-- **Analyze question:** reads the question and generates one answer with a short explanation.
-- **Select suggested answer:** selects the agreed answer after you review it.
-- **Click Next:** advances after verifying that the suggested answer is selected.
-- **Automation On/Off:** turn On to start answering and advancing immediately. Turn Off to stop before the next action. An action already happening cannot be undone. The switch resets to Off when the run ends or stops on an error.
+## Update without losing your saved textbook
 
-At the last question, automatic mode clicks **Review**, waits for one available **Finish** button, then clicks it once and stops. Finish may submit the activity. If it cannot identify Finish, it stops for you to finish manually. Manual **Click Next** can open Review, but you must click Finish yourself.
+**Do not remove the extension from Chrome. Removing it deletes its saved textbook archive.**
 
-Closing the popup does **not** stop automatic mode. Reopen it to see progress or turn Automation Off.
-
-One model pass is faster than the previous double check. Thinking mode stays off. Textbook excerpts are context for that single AI answer. Exact quotes are not required, and search matches do not guarantee correctness.
-
-The extension does not click a separate **Check Answer** or **Submit** button. Handle those yourself if needed. A page’s Next button may itself submit an answer.
-
-## Keep the assistant open in its own window
-
-Click **Open in window** in the extension. A separate small Chrome window stays open while you click around MindTap. It controls the active tab in the browser window you launched it from; switch tabs in that original window to choose another question or textbook page. Closing the assistant window does not stop quiz automation or textbook auto-save. Turn Automation Off or turn off the auto-save toggle for that.
-
-This is a detached Chrome window, not a separate desktop app. Keep your original browser window open. If you close it, reopen the assistant from the toolbar in another browser window. Chrome may ask you to accept updated site access for ng.cengage.com so the detached controls can read question pages.
-
-## Use your textbook for reference
-
-1. Open a textbook section in Cengage's eTextbook reader.
-2. Auto-save is on by default. If you previously turned it off or cleared the archive, enable **Auto-save opened textbook sections** again.
-3. Refresh the textbook tab once after installing this update. As you open sections, they are saved automatically after the text settles (usually about 0.75–1.5 seconds after the text loads). There is no manual save button. You do not need to copy text into chat.
-4. Return to MindTap and analyze a question normally. The extension searches your saved sections and sends up to three matching excerpts to the single answer pass.
-
-The **Textbook auto-save** card shows Reading, Saving, Waiting, or Stopped, plus the last saved section and archive usage. If no reader has been detected, refresh the textbook tab. Background Chrome tabs can be throttled, so saving may take longer.
-
-The answer status lists the section titles supplied as references. These are search matches, not proof the answer is correct. If nothing matches, the model answers from its own knowledge. Only opened sections are saved, not the whole book. Auto-save works on the opened textbook reader even while the detached assistant has focus, skips duplicates, and stays enabled between browser sessions until you turn it off. It turns off on a save error, including a full archive; the textbook status displays the error. The extension requests access to ebooks.cengage.com to watch the reader. The Cengage reader’s same-origin iframe-page frame is supported. Pages stored as images or inside inaccessible frames cannot be captured this way.
-
-Chrome’s unlimitedStorage permission allows the archive to exceed the normal extension storage quota. The app checks its own 10 MB limit before adding a section. Saved text stays in this extension's local Chrome storage (up to 10 MB of saved text, with a one-million-character limit per section). It is sent only to your local helper and Ollama. Removing the extension deletes its saved library; reloading the same installed extension preserves it. Section titles are captured where available; page numbers are not yet captured. Click **Clear textbook archive** to immediately delete saved sections without removing the extension. Clearing turns auto-save off so the current page does not refill the archive. Reloading this update does not delete an existing archive larger than 10 MB; new sections are blocked until you clear it. Use textbook material you are permitted to save for personal study.
-
-## Updating to a new version
-
-Update **both** parts: the Chrome extension and the Python helper.
-
-1. Stop the old helper with **Control + C** in its Terminal window.
+1. Turn **Automation Off**. If using AI mode, stop the old helper with **Control + C**.
 2. Download and unzip the new version.
-3. Repeat step 3 above using the **new** project folder.
-4. At `chrome://extensions`, remove the old extension, then click **Load unpacked** and select the new **extension** folder.
-5. Refresh your MindTap page. Check the version in the popup.
+3. Open the new project folder. Copy **everything inside it**.
+4. Open the old project folder that Chrome already uses. Paste the new contents there. Choose **Replace** when asked.
+5. Go to `chrome://extensions`. Click the **Reload** arrow on the MindTap Study Assistant card.
+6. Close the old detached assistant window, if open.
+7. Refresh your MindTap and textbook tabs. Open the assistant again and check its version.
+8. For AI mode, restart the helper using steps D and E above.
 
-If you replace files inside the folder Chrome already uses, you can click **Reload** on the extension card instead. Do not delete the folder Chrome is loading.
+Keep the old folder's name and location the same. You are replacing its contents, not switching Chrome to a different folder.
 
-## Common problems
+## Something went wrong?
 
-### “Can’t open file … backend/server.py”
+| What you see | What to do |
+| --- | --- |
+| **Manifest file is missing or unreadable** | Click **Load unpacked** again. Select the **extension** folder inside the unzipped project. That folder must contain **manifest.json**. |
+| **Cannot access contents of the page** | Switch the original Chrome window to the MindTap question or eTextbook tab. Allow the extension's Cengage site access, then refresh the page. Chrome settings pages and unrelated sites are not supported. |
+| **No textbook sections saved yet** | Turn auto-save on, open an eTextbook section, refresh its tab, and wait for **Saved**. |
+| **No matching saved passages** | Open and save the textbook section that covers this question, then try again. |
+| **No readable textbook paragraphs** | Open a section in the actual eTextbook reader and wait for the text. Image-only pages and inaccessible frames cannot be saved. |
+| **Cannot read question or answer labels** | Open one supported multiple-choice question and wait for it to load. Refresh the tab and try again. |
+| **No reply from the extension** | Reload it at `chrome://extensions`, then close and reopen its detached window. |
+| **Textbook archive has reached its limit** | The archive allows 10 MB. Clear it only if you no longer need the saved sections. |
+| **Subcooling calculation paused** | Check the units and refrigerant. Unsupported inputs or no unique matching choice require manual review. |
 
-Terminal is in the wrong folder. Repeat the `cd ` and drag-folder steps above. Choose the folder containing **backend** and **extension**, not the extension folder itself.
+**AI-only problems:**
 
-### “Address already in use”
+| What you see | What to do |
+| --- | --- |
+| **ollama: command not found** | Open Ollama and finish its setup. Close and reopen Terminal, then try the download command again. |
+| **python3: command not found** | Install Python using step B, then close and reopen Terminal. |
+| **Can't open file … backend/server.py** | Terminal is in the wrong folder. Repeat the `cd ` and drag-folder instructions in step D. |
+| **Address already in use** | The old helper is still running. Stop it with **Control + C** in its Terminal window. Then start the new one. |
+| **Could not connect to local Ollama** | Open the Ollama app. If needed, run `ollama serve` in a second Terminal window and leave it open. |
+| **Model not found** | Run `ollama pull qwen3:8b` and wait for it to finish. |
+| **Restart the backend / textbook context not accepted** | Stop the old helper, replace the project files with the current version, and start the updated helper. |
+| **Answers are slow** | Keep Ollama open, use `OLLAMA_THINK=false` as shown above, and close memory-heavy apps. Repeat questions may reuse a cached answer. |
 
-An old helper is still running. Find its Terminal window and press **Control + C**, then start the new helper. Only one helper can use port 8765 at a time.
+## Delete saved textbook sections
 
-### “Could not connect to local Ollama”
+Click **Clear textbook archive** in the assistant.
 
-Open the Ollama app. If that does not work, open another Terminal window and run `ollama serve`. Leave it running, then retry. If it says the address is already in use, Ollama is already running.
+It deletes all saved sections immediately and turns auto-save off. There is no confirmation. Turn auto-save back on when you want to start saving again.
 
-### “Model not found” or “not installed”
+Saved sections stay in this extension's local Chrome storage. They are not automatically shared with classmates. Textbook-only mode searches them in Chrome; AI mode sends matching passages to the helper and Ollama on your own computer. No cloud AI service is used.
 
-Run `ollama pull qwen3:8b` and wait for the download to finish.
+## Calculator details
 
-### Faster answers in v0.6
+The built-in calculator supports **R-410A subcooling** with one pressure in **psig**, one condenser outlet/liquid-line temperature in **°F**, and temperature answer choices.
 
-The helper starts loading your model when it opens and keeps it loaded between questions. This uses RAM until Ollama unloads it; run `ollama stop qwen3:8b` when finished if you want to free it.
+**Subcooling = saturation temperature − liquid temperature.**
 
-Answers use a 512-token output limit with thinking off (previously 2048). This is a ceiling, so already-short answers may take about the same time. If unusually long choices cause incomplete answers, restart with `export OLLAMA_MAX_TOKENS=1024`. Thinking mode retains a 2048-token default.
+It uses a bundled bubble-point table from [CoolProp 7.2.0's R410A model](https://coolprop.org/fluid_properties/fluids/R410A.html), covering −40°F through 140°F. A choice must uniquely match within 0.5°F. For **417.4 psig** and **108°F**, it calculates about **11.6°F**, matching the rounded choice **12°F**. Charts can differ slightly.
 
-Repeat questions reuse a cached answer when the question, ordered choices, supplied textbook excerpts, model settings, and instructions match exactly. The status says **Cached answer reused**. The cache holds up to 256 answers and 8 MB in backend memory. Restart the helper to clear it; it does not persist after a restart. A cached answer preserves the original result, including any mistakes.
+Other refrigerants, Celsius, psia, multiple measured temperatures, and superheat need manual review. You do not need to install CoolProp to use the calculator.
 
-### Answers are taking too long
+## AI speed settings
 
-Stop the helper with **Control + C**, then restart it with thinking off:
+The helper keeps the model loaded between questions. To free its memory when finished, run:
 
 ```bash
+ollama stop qwen3:8b
+```
+
+Answers have a 512-token output limit with thinking off. If you get incomplete responses with unusually long choices, stop the helper and restart with:
+
+```bash
+export OLLAMA_MODEL=qwen3:8b
 export OLLAMA_THINK=false
+export OLLAMA_MAX_TOKENS=1024
 python3 backend/server.py
 ```
 
-Close memory-heavy apps. The first question can be slower if model warm-up is still running. The single model request can wait up to 90 seconds; the extension allows 100 seconds total.
+Repeat answers are cached only when the question, ordered choices, textbook passages, and model settings match. The cache is limited to 256 answers / 8 MB and clears when the helper restarts. Cached answers can preserve mistakes too.
 
-### It cannot find Next or Review
+## For people changing the code
 
-Advance using the page’s own button, then reopen the assistant and analyze the next question. Automatic mode pauses when the navigation button is missing or ambiguous. The Choose Next button has been removed.
+Ordinary users do not need Node, npm, API keys, or extra Python packages.
 
-### “Double check missing”
-
-The extension is talking to an old helper. Stop it and start `backend/server.py` from the newest downloaded folder.
-
-### It cannot read the question or answer labels
-
-Open one question and wait for it to finish loading. If it still fails, share the error and a screenshot or a small HTML sample of the answer row. Remove account details before sharing.
-
-## What it supports
-
-Single-answer multiple-choice questions with readable text. Diagrams, image-based equations, questions inside embedded frames, multiple-answer questions, and free-text answers are not supported. Refreshing or changing pages can interrupt a run; analyze again to restart.
-
-Questions and choices go to Ollama on your computer. No cloud AI service is used. Recent questions and suggestions are kept in Chrome’s temporary session storage, limited to 100 entries; there is no export button. Do not expose the helper publicly—it is intended to run locally alongside Chrome.
-
-## For developers
-
-From the project folder:
+From the project folder, developers can run:
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -204,6 +259,8 @@ npm ci
 npm test
 ```
 
-Python needs no extra packages. The JavaScript tests require Node 20.19+ or a newer supported release. Tests use simulated model responses and example webpages; they verify the workflow, not factual answer accuracy. The connection check verifies service/model availability, not successful answer generation.
+JavaScript tests need Node 20.19 or newer. Most model tests use simulated answers; passing tests do not guarantee factual AI accuracy. The maintenance script `scripts/build_r410a_table.py` needs CoolProp 7.2.0 only if regenerating the bundled table.
 
 [Release notes](CHANGELOG.md)
+
+Austin Taylor · [@atslo.m4a](https://www.instagram.com/atslo.m4a/)

@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.6.5
+
+- Rewrite the README as a beginner walkthrough, with no-AI installation first and separate optional Mac AI steps.
+- Show the exact extension folder to select, expected success messages, and simple troubleshooting.
+- Make archive-preserving updates the default; explain that removing the extension deletes saved sections.
+- Documentation update; no backend changes or restart required.
+
 ## v0.6.4
 
 - Add deterministic R-410A subcooling calculations using a bundled CoolProp 7.2.0 bubble-point PT table.
