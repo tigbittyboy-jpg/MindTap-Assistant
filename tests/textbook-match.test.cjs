@@ -65,3 +65,35 @@ test('retrieval includes the asked connection deep inside a saved section', () =
   const result = vm.runInContext('textbookTextMatch(data, references)', context);
   assert.equal(result.index, 2);
 });
+test('retrieval excludes compressor outlet even under a condenser section title', () => {
+  context.data = {prompt: statePrompt, choices: stateChoices};
+  context.sections = [{title:'The Condenser',text:'The refrigerant at the outlet of the compressor is 100% vapor and superheated.'}];
+  assert.equal(vm.runInContext('findReferences(data, sections).length', context),0);
+});
+test('focused references omit following descriptions of another component', () => {
+  context.data = {prompt: statePrompt, choices: stateChoices};
+  context.sections = [{title:'The Condenser',text:'The refrigerant at the outlet of the condenser is 100% liquid and subcooled. The refrigerant at the outlet of the compressor is superheated vapor.'}];
+  const refs=vm.runInContext('findReferences(data, sections)',context);
+  assert.equal(refs.length,1);
+  assert.ok(!refs[0].text.includes('compressor'));
+  context.references=refs;
+  assert.equal(vm.runInContext('textbookTextMatch(data,references).index',context),2);
+});
+test('generic shared words and section titles cannot establish passage relevance', () => {
+  context.data={prompt:'Which refrigerant replaces R-410A in residential heat pumps?',choices:['R-32','R-454B']};
+  context.sections=[{title:'R-410A residential heat pumps',text:'This is the refrigerant which should be used.'}];
+  assert.equal(vm.runInContext('findReferences(data,sections).length',context),0);
+});
+test('provided subcooling definition answers the normal condenser outlet state', () => {
+  const text='The amount of subcooling in the condenser is the difference between the temperature of the refrigerant at the outlet of the condenser and the temperature at which the refrigerant condenses. Referring to Figure 3.28, it can be seen that the refrigerant condenses at and leaves the condenser at a temperature of. This means that this condenser is operating with of subcooling.';
+  const answer=match(statePrompt,stateChoices,text);
+  assert.equal(answer.index,2);
+  assert.match(answer.reason,/Subcooling means cooling liquid/);
+  assert.ok(text.includes(answer.evidence));
+});
+test('subcooling rule requires matching connection and normal state wording', () => {
+  assert.equal(match(statePrompt,stateChoices,'The condenser has subcooling, calculated as a temperature difference. The compressor outlet is hot.'),null);
+  assert.equal(match(statePrompt.replace('should be','currently is'),stateChoices,'The subcooling at the outlet of the condenser is calculated as a difference between saturation and liquid temperatures.'),null);
+  assert.equal(match(statePrompt,stateChoices,'At the outlet of the condenser there is no subcooling compared with saturation.'),null);
+  assert.equal(match(statePrompt,stateChoices,'At the outlet of the condenser there is 0°F of subcooling compared with saturation.'),null);
+});

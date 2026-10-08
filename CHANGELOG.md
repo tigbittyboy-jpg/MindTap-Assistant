@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.6.7
+
+- Require retrieved passages to describe the asked HVAC component connection; do not qualify text from section titles or generic words alone.
+- Focus passage windows on the relevant connection and exclude following explanations of another connection.
+- Connect relevant subcooling definitions to normal subcooled-liquid state questions, with a stated reasoning rule and source passage.
+- Deduplicate identical windows; retain manual selection and no-AI operation.
+
 ## v0.6.6
 
 - Match condenser/compressor/evaporator inlets and outlets separately, including leaving/entering wording.

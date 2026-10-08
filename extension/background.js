@@ -71,7 +71,7 @@ function matchesLocation(text, location) {
   return new RegExp(`\\b(?:${location.flow} (?:of )?(?:the )?${location.component}|${location.component} ${location.flow})\\b`).test(normalized);
 }
 function findReferences(data, sections) {
-  const terms = referenceTokens(matchingText(data.prompt));
+  const terms = referenceTokens(matchingText(data.prompt)).filter(term => !['state','refrigerant','should','would','could','called','following'].includes(term));
   const choiceTerms = referenceTokens(matchingText(data.choices.join(' ')));
   const location = questionLocation(data.prompt);
   const candidates = [];
@@ -79,17 +79,32 @@ function findReferences(data, sections) {
     for (const paragraph of section.text.split(/\n\n+/)) {
       // Keep excerpts bounded so questions still fit the model context.
       const starts = new Set();
-      for (let start = 0; start < paragraph.length; start += 750) starts.add(start);
+      if (!location) for (let start = 0; start < paragraph.length; start += 750) starts.add(start);
       // Include windows around the asked component/connection, even deep in a section.
       if (location) for (const sentence of paragraph.matchAll(/[^.!?\n]+(?:[.!?]|$)/g)) {
-        if (matchesLocation(sentence[0], location)) starts.add(Math.max(0, sentence.index - 120));
+        if (matchesLocation(sentence[0], location)) starts.add(sentence.index);
       }
       for (const start of starts) {
-        const excerpt = paragraph.slice(start, start + 900);
-        const tokens = new Set(referenceTokens(matchingText(section.title + ' ' + excerpt)));
+        let excerpt = paragraph.slice(start, start + 900);
+        if (location) {
+          // Keep the asked connection and its immediate explanation together.
+          const nearby = excerpt.match(/[^.!?\n]+(?:[.!?]|$)/g) || [excerpt];
+          const focused = [nearby[0]];
+          for (const sentence of nearby.slice(1, 3)) {
+            const nextLocation = questionLocation(sentence);
+            if (nextLocation && (nextLocation.flow !== location.flow || nextLocation.component !== location.component)) break;
+            focused.push(sentence);
+          }
+          excerpt = focused.join(' ').trim();
+          if (!matchesLocation(excerpt, location)) continue;
+        }
+        const tokens = new Set(referenceTokens(matchingText(excerpt)));
         const questionOverlap = terms.filter(term => tokens.has(term)).length;
-        const score = questionOverlap * 3 + choiceTerms.filter(term => tokens.has(term)).length + (location && matchesLocation(excerpt, location) ? 10 : 0);
+        const titleTokens = new Set(referenceTokens(matchingText(section.title)));
+        const titleBonus = terms.filter(term => titleTokens.has(term)).length;
+        const score = questionOverlap * 3 + titleBonus + choiceTerms.filter(term => tokens.has(term)).length + (location && matchesLocation(excerpt, location) ? 10 : 0);
         if (questionOverlap >= 2) {
+          if (candidates.some(item => item.source === section.title && matchingText(item.text) === matchingText(excerpt))) continue;
           candidates.push({source: section.title, text: excerpt, score});
           candidates.sort((a, b) => b.score - a.score);
           if (candidates.length > 3) candidates.pop();
@@ -115,6 +130,7 @@ function textbookTextMatch(data, references) {
     // HFC R-32 and R-32 name the same refrigerant; keep its entire designation.
     const refrigerant = choice.match(/^(?:hfc|hfo|hc) (r\d{2,4}[a-z]*)$/);
     if (refrigerant) aliases.push(refrigerant[1]);
+    let derivedReason;
     for (const reference of references) {
       const sentences = reference.text.match(/[^.!?\n]+(?:[.!?]|$)/g) || [reference.text];
       const evidence = sentences.map((sentence, index) => {
@@ -137,12 +153,20 @@ function textbookTextMatch(data, references) {
           const percentages = [...sentence.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:%|percent\b)/gi)].map(item => Number(item[1]));
           if (percentages.some(value => value !== 100) || /\b(?:mixture|mixed)\b/.test(normalized)) choiceMatches = false;
         }
+        const normalStateQuestion = /\b(?:should|normally|normal|expected|typical)\b/i.test(data.prompt);
+        const subcoolingDefinition = location?.component === 'condenser' && location.flow === 'outlet' && normalStateQuestion && choice === '100 subcooled liquid' &&
+          /\bsubcooling\b/.test(normalized) && /\b(?:condenses|condensing|condensation|saturation|difference)\b/.test(normalized) &&
+          !/\b(?:zero|0)(?: f| degrees?)? (?:of )?subcooling\b/.test(normalized);
+        const usedSubcoolingRule = !choiceMatches && subcoolingDefinition;
+        if (usedSubcoolingRule) choiceMatches = true;
         if (!choiceMatches) return false;
         if (/\b(?:not|never|no|without|unlike)\b|n['’]t\b/i.test(sentence)) return false;
         const tokens = new Set(referenceTokens(normalized));
-        return terms.filter(term => tokens.has(term)).length >= 2;
+        if (terms.filter(term => tokens.has(term)).length < 2) return false;
+        if (usedSubcoolingRule) derivedReason = 'Subcooling means cooling liquid below its saturation temperature. The cited passage describes subcooling at this outlet, so the normal state is subcooled liquid.';
+        return true;
       });
-      if (evidence) { matches.push({index, source: reference.source, evidence: evidence.trim()}); break; }
+      if (evidence) { matches.push({index, source: reference.source, evidence: evidence.trim(), reason: derivedReason}); break; }
     }
   }
   return matches.length === 1 ? matches[0] : null;
@@ -168,12 +192,15 @@ async function lookupTextbook(tabId) {
   }
   if (!textbookSections.length) return report('No textbook sections saved yet. Open your textbook sections with auto-save on, then return here and find passages. No AI or backend is needed.');
   const references = findReferences(data, textbookSections);
-  if (!references.length) return report('No matching saved passages found. Open the relevant textbook section to save it, then try again. Choose your answer manually.');
+  if (!references.length) {
+    const location = questionLocation(data.prompt);
+    return report(location ? `No matching saved passages describe the ${location.component} ${location.flow}. Open the textbook section describing that connection and wait for it to save, then try again. Other component connections are excluded.` : 'No matching saved passages found. Open the relevant textbook section to save it, then try again. Choose your answer manually.');
+  }
   const match = textbookTextMatch(data, references);
   const location = questionLocation(data.prompt);
-  const reason = location ? `The passage matches the ${location.component} ${location.flow} asked about and this choice's phase description.` : 'Only this choice matches a relevant, non-negated sentence in the retrieved passages.';
+  const reason = match?.reason || (location ? `The passage matches the ${location.component} ${location.flow} asked about and this choice's phase description.` : 'Only this choice matches a relevant, non-negated sentence in the retrieved passages.');
   const heading = match
-    ? `Possible answer (text match): ${data.choices[match.index]}\nWhy: ${reason}\n${match.source}: “${match.evidence}”\nThis is a text match, not a verified answer. Choose manually.\n\n`
+    ? `Possible answer (${match.reason ? "HVAC rule" : "text match"}): ${data.choices[match.index]}\nWhy: ${reason}\n${match.source}: “${match.evidence}”\nThis is a text match, not a verified answer. Choose manually.\n\n`
     : 'No distinct answer text match. Review these passages and choose manually.\n\n';
   return report(heading + 'Textbook passages · no AI\n\n' +
     references.map((item, index) => `${index + 1}. ${item.source}\n${item.text}`).join('\n\n'));

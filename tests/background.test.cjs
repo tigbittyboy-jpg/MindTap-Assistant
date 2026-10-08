@@ -288,3 +288,15 @@ test('unsupported subcooling lookup stops without an AI request', async () => {
   assert.match(result.error, /supports R-410A only/);
   assert.equal(app.requests.length, 0);
 });
+
+test('the actual provided definition resolves the condenser state without AI', async () => {
+  const app=harness({assistanceMode:'textbook',questionData:{
+    prompt:'The state of the refrigerant at the outlet of the condenser should be',
+    choices:['100% superheated vapor.','75% liquid and 25% vapor.','100% subcooled liquid.','50% liquid and 50% vapor.']},
+    textbookSections:[{title:'3.9. The Condenser',text:'The amount of subcooling in the condenser is the difference between the temperature of the refrigerant at the outlet of the condenser and the temperature at which the refrigerant condenses. Referring to Figure 3.28, it can be seen that the refrigerant condenses at and leaves the condenser at a temperature of. This means that this condenser is operating with of subcooling.'}]});
+  const result=await app.command({action:'analyze',tabId:1});
+  assert.match(result.message,/Possible answer \(HVAC rule\): 100% subcooled liquid/);
+  assert.match(result.message,/Subcooling means cooling liquid/);
+  assert.match(result.message,/3.9. The Condenser/);
+  assert.equal(app.requests.length,0);
+});
