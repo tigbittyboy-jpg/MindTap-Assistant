@@ -30,3 +30,38 @@ test('unrelated mentions, partial word matches, and unsupported forms remain pas
   assert.equal(match('Residential heat pumps use R-32?', ['True', 'False'], 'True: residential heat pumps use R-32.'), null);
   assert.equal(match('What is 2 plus 2?', ['3', '4'], '2 plus 2 equals 4.'), null);
 });
+const statePrompt = 'The state of the refrigerant at the outlet of the condenser should be';
+const stateChoices = ['100% superheated vapor.', '75% liquid and 25% vapor.', '100% subcooled liquid.', '50% liquid and 50% vapor.'];
+test('compressor outlet passage cannot answer a condenser outlet question', () => {
+  assert.equal(match(statePrompt, stateChoices,
+    'The refrigerant at the outlet of the compressor does not follow a temperature/pressure relationship. This is because the refrigerant is 100% vapor and superheated.'), null);
+});
+test('reordered phase wording matches the correct component outlet', () => {
+  const result = match(statePrompt, stateChoices,
+    'The refrigerant at the outlet of the compressor is 100% vapor and superheated. At the outlet of the condenser, the refrigerant is 100% liquid and subcooled.');
+  assert.equal(result.index, 2);
+  assert.match(result.evidence, /outlet of the condenser/);
+});
+test('leaving wording and a following same-refrigerant sentence retain location', () => {
+  const result = match(statePrompt, stateChoices,
+    'The refrigerant is leaving the condenser. It is a sub-cooled liquid.');
+  assert.equal(result.index, 2);
+});
+test('inlets, mixed phases, and negated phase statements stay separate', () => {
+  assert.equal(match(statePrompt, stateChoices, 'At the inlet of the condenser, the refrigerant is 100% superheated vapor.'), null);
+  assert.equal(match(statePrompt, stateChoices, 'At the outlet of the condenser, the refrigerant is not subcooled liquid.'), null);
+  assert.equal(match(statePrompt, stateChoices, 'At the outlet of the condenser, 0% is subcooled liquid.'), null);
+  assert.equal(match(statePrompt, stateChoices, 'At the outlet of the condenser, the refrigerant is 99% subcooled liquid.'), null);
+  assert.equal(match(statePrompt, stateChoices, 'At the outlet of the condenser, the refrigerant is a 75 percent liquid mixture with 25 percent vapor and subcooled liquid.'), null);
+});
+test('retrieval includes the asked connection deep inside a saved section', () => {
+  context.data = {prompt: statePrompt, choices: stateChoices};
+  context.sections = [{title: 'The Condenser', text:
+    'The outlet of the compressor contains superheated vapor refrigerant. '.repeat(70) +
+    'At the outlet of the condenser, the refrigerant is 100% liquid and subcooled.'}];
+  const references = vm.runInContext('findReferences(data, sections)', context);
+  assert.ok(references.some(item => item.text.includes('outlet of the condenser')));
+  context.references = references;
+  const result = vm.runInContext('textbookTextMatch(data, references)', context);
+  assert.equal(result.index, 2);
+});

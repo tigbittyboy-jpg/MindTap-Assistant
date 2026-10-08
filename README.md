@@ -1,10 +1,10 @@
-# MindTap Assistant — v0.6.5
+# MindTap Assistant — v0.6.6
 
 A study helper for your MindTap questions and textbook.
 
 **Start with the easy setup below. You do not need Terminal, Python, or AI for it.**
 
-[Download v0.6.5](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.5.zip)
+[Download v0.6.6](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.6.zip)
 
 ## Easy setup: textbook mode
 
@@ -12,10 +12,10 @@ These steps work on **Mac and Windows**. You need **Google Chrome** and access t
 
 ### 1. Download and open the folder
 
-1. Click **Download v0.6.5** above.
+1. Click **Download v0.6.6** above.
 2. Open your computer's **Downloads** folder.
 3. Open the downloaded ZIP. On a Mac, double-click it. On Windows, right-click it and choose **Extract All**.
-4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.5**.
+4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.6**.
 5. You should see **backend**, **extension**, and this README inside it.
 6. Move this whole folder somewhere you will keep it, such as **Documents**. You can rename it **MindTap Assistant**.
 
@@ -41,7 +41,7 @@ MindTap Assistant
 
 **Do not select the ZIP, the backend folder, or the big outer folder.**
 
-You should now see a card called **MindTap Study Assistant**, with version **0.6.5**.
+You should now see a card called **MindTap Study Assistant**, with version **0.6.6**.
 
 ### 3. Put its icon beside the address bar
 
@@ -79,7 +79,7 @@ It saves the sections you open. **It does not download the whole book.** Each cl
 4. Read the result and the matching textbook passages.
 5. Select your answer on the **MindTap page**, then click the page's **Next** button.
 
-Sometimes it shows a **Possible answer (text match)** and a short reason. This means one choice matched the saved text; it is not a guaranteed correct answer. If it cannot find a clear match, it shows passages for you to read.
+Sometimes it shows a **Possible answer (text match)** and a short reason. It recognizes some equivalent phase wording and checks the asked component inlet/outlet. This means one choice matched the saved text; it is not a guaranteed correct answer. If it cannot find a clear match, it shows passages for you to read.
 
 It can also calculate supported **R-410A subcooling** questions without AI. See [calculator details](#calculator-details) below.
 

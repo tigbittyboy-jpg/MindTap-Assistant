@@ -50,17 +50,46 @@ async function verifySelection(tabId, answer) {
 }
 const referenceTokens = value => [...new Set((value.toLowerCase().match(/[a-z0-9]+/g) || [])
   .filter(word => (word.length > 2 || /\d/.test(word)) && !new Set(['the','and','for','with','from','that','this','which','what','are','has','have','into','when','only','not','all','one','its','can','will','also']).has(word)))];
+function matchingText(value) {
+  return value.toLowerCase().replace(/\br\s*-?\s*(\d{2,4}[a-z]*)\b/g, 'r$1')
+    .replace(/\bvapour\b/g, 'vapor').replace(/\bsub[- ]?cooled\b/g, 'subcooled')
+    .replace(/\bsuper[- ]?heated\b/g, 'superheated')
+    .replace(/\b(?:exit|leaves|leaving)\b/g, 'outlet')
+    .replace(/\b(?:entrance|enters|entering)\b/g, 'inlet')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function questionLocation(prompt) {
+  const text = matchingText(prompt);
+  const first = text.match(/\b(outlet|inlet) (?:of )?(?:the )?(condenser|compressor|evaporator)\b/);
+  if (first) return {flow: first[1], component: first[2]};
+  const reversed = text.match(/\b(condenser|compressor|evaporator) (outlet|inlet)\b/);
+  return reversed ? {flow: reversed[2], component: reversed[1]} : null;
+}
+function matchesLocation(text, location) {
+  if (!location) return true;
+  const normalized = matchingText(text);
+  return new RegExp(`\\b(?:${location.flow} (?:of )?(?:the )?${location.component}|${location.component} ${location.flow})\\b`).test(normalized);
+}
 function findReferences(data, sections) {
-  const terms = referenceTokens(data.prompt + ' ' + data.choices.join(' '));
+  const terms = referenceTokens(matchingText(data.prompt));
+  const choiceTerms = referenceTokens(matchingText(data.choices.join(' ')));
+  const location = questionLocation(data.prompt);
   const candidates = [];
   for (const section of sections) {
     for (const paragraph of section.text.split(/\n\n+/)) {
       // Keep excerpts bounded so questions still fit the model context.
-      for (let start = 0; start < paragraph.length; start += 750) {
+      const starts = new Set();
+      for (let start = 0; start < paragraph.length; start += 750) starts.add(start);
+      // Include windows around the asked component/connection, even deep in a section.
+      if (location) for (const sentence of paragraph.matchAll(/[^.!?\n]+(?:[.!?]|$)/g)) {
+        if (matchesLocation(sentence[0], location)) starts.add(Math.max(0, sentence.index - 120));
+      }
+      for (const start of starts) {
         const excerpt = paragraph.slice(start, start + 900);
-        const tokens = new Set(referenceTokens(section.title + ' ' + excerpt));
-        const score = terms.filter(term => tokens.has(term)).length;
-        if (score >= 2) {
+        const tokens = new Set(referenceTokens(matchingText(section.title + ' ' + excerpt)));
+        const questionOverlap = terms.filter(term => tokens.has(term)).length;
+        const score = questionOverlap * 3 + choiceTerms.filter(term => tokens.has(term)).length + (location && matchesLocation(excerpt, location) ? 10 : 0);
+        if (questionOverlap >= 2) {
           candidates.push({source: section.title, text: excerpt, score});
           candidates.sort((a, b) => b.score - a.score);
           if (candidates.length > 3) candidates.pop();
@@ -75,8 +104,9 @@ async function assistanceMode() {
 }
 function textbookTextMatch(data, references) {
   if (/\b(?:not|except|false|incorrect)\b/i.test(data.prompt)) return null;
-  const normalize = text => text.toLowerCase().replace(/\br\s*-?\s*(\d{2,4}[a-z]*)\b/g, 'r$1').replace(/[^a-z0-9]+/g, ' ').trim();
-  const terms = referenceTokens(data.prompt);
+  const normalize = matchingText;
+  const terms = referenceTokens(normalize(data.prompt));
+  const location = questionLocation(data.prompt);
   const matches = [];
   for (let index = 0; index < data.choices.length; index++) {
     const choice = normalize(data.choices[index]);
@@ -87,11 +117,29 @@ function textbookTextMatch(data, references) {
     if (refrigerant) aliases.push(refrigerant[1]);
     for (const reference of references) {
       const sentences = reference.text.match(/[^.!?\n]+(?:[.!?]|$)/g) || [reference.text];
-      const evidence = sentences.find(sentence => {
-        const text = ' ' + normalize(sentence) + ' ';
-        if (!aliases.some(alias => text.includes(' ' + alias + ' '))) return false;
+      const evidence = sentences.map((sentence, index) => {
+        // Carry explicit location into one following sentence about the same refrigerant.
+        if (location && !matchesLocation(sentence, location) && index > 0 &&
+            /^(?:it|this refrigerant|the refrigerant|this liquid|the liquid)\b/i.test(sentence.trim()) &&
+            !questionLocation(sentence) && matchesLocation(sentences[index - 1], location)) {
+          return sentences[index - 1] + ' ' + sentence;
+        }
+        return sentence;
+      }).find(sentence => {
+        const normalized = normalize(sentence);
+        const text = ' ' + normalized + ' ';
+        if (location && !matchesLocation(sentence, location)) return false;
+        let choiceMatches = aliases.some(alias => text.includes(' ' + alias + ' '));
+        // A stated single phase implies 100%; mixed percentages still require exact wording.
+        if (!choiceMatches && location && /^100 (?:superheated vapor|subcooled liquid)$/.test(choice)) {
+          const phaseWords = choice.replace(/^100 /, '').split(' ');
+          choiceMatches = phaseWords.every(word => text.includes(' ' + word + ' '));
+          const percentages = [...sentence.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:%|percent\b)/gi)].map(item => Number(item[1]));
+          if (percentages.some(value => value !== 100) || /\b(?:mixture|mixed)\b/.test(normalized)) choiceMatches = false;
+        }
+        if (!choiceMatches) return false;
         if (/\b(?:not|never|no|without|unlike)\b|n['’]t\b/i.test(sentence)) return false;
-        const tokens = new Set(referenceTokens(sentence));
+        const tokens = new Set(referenceTokens(normalized));
         return terms.filter(term => tokens.has(term)).length >= 2;
       });
       if (evidence) { matches.push({index, source: reference.source, evidence: evidence.trim()}); break; }
@@ -122,8 +170,10 @@ async function lookupTextbook(tabId) {
   const references = findReferences(data, textbookSections);
   if (!references.length) return report('No matching saved passages found. Open the relevant textbook section to save it, then try again. Choose your answer manually.');
   const match = textbookTextMatch(data, references);
+  const location = questionLocation(data.prompt);
+  const reason = location ? `The passage matches the ${location.component} ${location.flow} asked about and this choice's phase description.` : 'Only this choice matches a relevant, non-negated sentence in the retrieved passages.';
   const heading = match
-    ? `Possible answer (text match): ${data.choices[match.index]}\nWhy: Only this choice matches a relevant, non-negated sentence in the retrieved passages.\n${match.source}: “${match.evidence}”\nThis is a text match, not a verified answer. Choose manually.\n\n`
+    ? `Possible answer (text match): ${data.choices[match.index]}\nWhy: ${reason}\n${match.source}: “${match.evidence}”\nThis is a text match, not a verified answer. Choose manually.\n\n`
     : 'No distinct answer text match. Review these passages and choose manually.\n\n';
   return report(heading + 'Textbook passages · no AI\n\n' +
     references.map((item, index) => `${index + 1}. ${item.source}\n${item.text}`).join('\n\n'));

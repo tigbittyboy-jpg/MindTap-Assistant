@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.6.6
+
+- Match condenser/compressor/evaporator inlets and outlets separately, including leaving/entering wording.
+- Recognize reordered pure-phase descriptions such as “100% liquid and subcooled.”
+- Prioritize question wording and add passage windows around the asked component connection.
+- Keep ambiguity and negation checks; no AI or backend needed for textbook matching.
+
 ## v0.6.5
 
 - Rewrite the README as a beginner walkthrough, with no-AI installation first and separate optional Mac and Windows AI steps.
