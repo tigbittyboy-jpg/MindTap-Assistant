@@ -251,3 +251,7 @@ test('an empty reader frame does not fall back to unrelated shell paragraphs', (
   const window = fixture('<p data-cgi="shell">Shell text</p><iframe id="iframe-page"></iframe>', 'https://ebooks.cengage.com/reader/book');
   assert.throws(() => window.mindtapAssistant.textbook(), /No readable textbook paragraphs/);
 });
+test('textbook capture keeps list and table facts without nested duplicates', () => {
+ const window = fixture('<aside><ul><li>Sidebar noise</li></ul></aside><h2>Cylinder Color Codes</h2><p data-cgi="intro">Cylinder colors:</p><ul><li><p data-cgi="entry">R-22: Green.</p></li><li style="display:none">Hidden fact</li></ul><table><tr><td>R-12</td><td>White</td></tr></table>', 'https://ebooks.cengage.com/reader/book');
+ assert.equal(window.mindtapAssistant.textbook().text,'Cylinder colors:\n\nR-22: Green.\n\nR-12 — White');
+});

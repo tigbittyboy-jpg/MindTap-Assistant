@@ -118,3 +118,12 @@ test('comparison preserves subject, direction, and capacity qualifications',()=>
  assert.equal(match(comparisonPrompt,comparisonChoices,'Rotary compressors are not smaller than reciprocating compressors of the same capacity.'),null);
  assert.equal(match(comparisonPrompt,comparisonChoices,'Rotary compressors and reciprocating compressors are common. These compressors are smaller than reciprocating compressors of the same capacity.'),null);
 });
+test('short named entries rank above introductions and other refrigerants', () => {
+ context.data={prompt:'The color-coding for an R-22 refrigerant cylinder is',choices:['brown.','white.','orange.','green.']};
+ context.sections=[{title:'Refrigerant Cylinder Color Codes',text:'Each refrigerant cylinder has a designated color.\n\nR-12: White.\n\nR-22: Green.'}];
+ const refs=vm.runInContext('findReferences(data, sections)',context);
+ assert.equal(refs[0].text,'R-22: Green.');
+ context.references=refs;
+ assert.equal(vm.runInContext('textbookTextMatch(data,references)',context).index,3);
+ assert.ok(!refs.some(r=>r.text.includes('R-12')));
+});

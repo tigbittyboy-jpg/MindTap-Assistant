@@ -74,6 +74,7 @@ function findReferences(data, sections) {
   const terms = referenceTokens(matchingText(data.prompt)).filter(term => !['state','refrigerant','should','would','could','called','following'].includes(term));
   const choiceTerms = referenceTokens(matchingText(data.choices.join(' ')));
   const location = questionLocation(data.prompt);
+  const entities = referenceTokens(matchingText(data.prompt)).filter(term => /^r\d{2,4}[a-z]*$/.test(term));
   const candidates = [];
   for (const section of sections) {
     for (const paragraph of section.text.split(/\n\n+/)) {
@@ -102,8 +103,11 @@ function findReferences(data, sections) {
         const questionOverlap = terms.filter(term => tokens.has(term)).length;
         const titleTokens = new Set(referenceTokens(matchingText(section.title)));
         const titleBonus = terms.filter(term => titleTokens.has(term)).length;
-        const score = questionOverlap * 3 + titleBonus + choiceTerms.filter(term => tokens.has(term)).length + (location && matchesLocation(excerpt, location) ? 10 : 0);
-        if (questionOverlap >= 2) {
+        const entityMatch = entities.length && entities.every(term => tokens.has(term));
+        const otherEntity = entities.length && [...tokens].some(term => /^r\d{2,4}[a-z]*$/.test(term) && !entities.includes(term));
+        if (otherEntity && !entityMatch) continue;
+        const score = (entityMatch ? 15 : 0) + questionOverlap * 3 + titleBonus + choiceTerms.filter(term => tokens.has(term)).length + (location && matchesLocation(excerpt, location) ? 10 : 0);
+        if (questionOverlap >= 2 || (entityMatch && titleBonus >= 1)) {
           if (candidates.some(item => item.source === section.title && matchingText(item.text) === matchingText(excerpt))) continue;
           candidates.push({source: section.title, text: excerpt, score});
           candidates.sort((a, b) => b.score - a.score);
@@ -184,7 +188,11 @@ function textbookTextMatch(data, references) {
         if (!choiceMatches) return false;
         if (/\b(?:not|never|no|without|unlike)\b|n['’]t\b/i.test(sentence)) return false;
         const tokens = new Set(referenceTokens(normalized));
-        if (terms.filter(term => tokens.has(term)).length < 2) return false;
+        const entities = terms.filter(term => /^r\d{2,4}[a-z]*$/.test(term));
+        if (entities.length && !entities.every(term => tokens.has(term))) return false;
+        const titleTerms = new Set(referenceTokens(normalize(reference.source)));
+        const titleContext = entities.length && entities.every(term => tokens.has(term)) && terms.some(term => titleTerms.has(term));
+        if (terms.filter(term => tokens.has(term)).length < 2 && !titleContext) return false;
         if (usedComparison) {
           derivedReason = 'The passage gives the same smaller/larger comparison for the same capacity; “same capacity” matches “similar capacities.”';
           matchMethod = 'comparison';

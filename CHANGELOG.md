@@ -1,3 +1,9 @@
+# v0.6.13
+
+- Save textbook list items and table rows alongside paragraphs, without nested duplicates.
+- Prioritize passages naming the requested refrigerant; short entries use their section heading as context.
+- Reopen affected textbook sections to save previously skipped entries. No backend restart required.
+
 # v0.6.12
 
 - Hide Select suggested answer and Click Next only in textbook-only/no-AI mode; keep it available in Local AI mode.

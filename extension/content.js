@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.mindtapAssistant?.version === 13) return;
+  if (globalThis.mindtapAssistant?.version === 14) return;
   const visible = el => !!el.getClientRects().length && el.ownerDocument.defaultView.getComputedStyle(el).visibility !== 'hidden';
   const text = (el, excluded = new Set()) => {
     const read = node => {
@@ -142,7 +142,7 @@
     return {prompt, choices, controls, fingerprint: JSON.stringify([prompt, choices])};
   }
   globalThis.mindtapAssistant = {
-    version: 13,
+    version: 14,
     textbook() {
       if (location.hostname !== 'ebooks.cengage.com') throw Error('Open a Cengage textbook section before saving.');
       // Cengage's reader shell stores the actual section in a same-origin frame.
@@ -154,8 +154,9 @@
         catch { throw Error('Cannot read this textbook frame. It must be accessible on the same site.'); }
         if (!bookDocument?.body) throw Error('The textbook frame is still loading or inaccessible. Wait and try again.');
       }
-      const paragraphs = [...bookDocument.querySelectorAll('p[data-cgi]')]
-        .filter(visible).map(node => text(node)).filter(Boolean);
+      const paragraphs = [...bookDocument.querySelectorAll('p[data-cgi],li,tr')]
+        .filter(visible).filter(node => !node.closest('nav,aside,[role="navigation"]')).filter(node => !node.parentElement?.closest('li,tr'))
+        .map(node => node.matches('tr') ? [...node.querySelectorAll('th,td')].filter(visible).map(cell => text(cell)).join(' — ') : text(node)).filter(Boolean);
       if (!paragraphs.length) throw Error('No readable textbook paragraphs found. Open a section and wait for it to load.');
       const headings = [...bookDocument.querySelectorAll('h1,h2,h3')].filter(visible);
       const title = text(headings[0]) || bookDocument.title || document.title || 'Textbook section';
