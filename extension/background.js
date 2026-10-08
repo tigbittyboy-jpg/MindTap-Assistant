@@ -308,7 +308,7 @@ async function analyze(tabId) {
         !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 || typeof answer.explanation !== 'string') throw Error('Invalid AI response.');
     if (answer.answer_text !== undefined && answer.answer_text !== data.choices[answer.index]) throw Error('AI answer text and index disagree.');
     await recordHistory({id: historyId, suggestedIndex: answer.index, suggestedText: data.choices[answer.index], confidence: answer.confidence,
-      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, calculated: answer.calculated === true, cached: answer.cached === true});
+      explanation: answer.explanation, provider: answer.provider || 'unknown', model: answer.model || 'unknown', thinking: answer.thinking, calculated: answer.calculated === true});
   } catch (error) {
     await recordHistory({id: historyId, error: error.message});
     throw error;
@@ -316,7 +316,7 @@ async function analyze(tabId) {
   if (await assistanceMode() !== 'ai') throw Error('Switched to textbook-only mode; AI suggestion discarded.');
   const suggestion = {...answer, fingerprint: data.fingerprint, historyId};
   suggestions.set(tabId, suggestion);
-  await report(`${answer.calculated ? "Calculated answer" : "Suggestion"}: ${data.choices[answer.index]}\n${answer.calculated ? "Source: " + answer.calculation_source : "Confidence (AI estimate): " + Math.round(answer.confidence * 100) + "%"}\n${answer.explanation}\n${answer.cached ? "Cached answer reused.\n" : ""}\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : answer.calculated ? "Used bundled refrigerant PT lookup; no AI generation." : "No matching saved textbook excerpts; answered from model knowledge."}`);
+  await report(`${answer.calculated ? "Calculated answer" : "Suggestion"}: ${data.choices[answer.index]}\n${answer.calculated ? "Source: " + answer.calculation_source : "Confidence (AI estimate): " + Math.round(answer.confidence * 100) + "%"}\n${answer.explanation}\n\n${references.length ? "Reference excerpts supplied: " + [...new Set(references.map(item => item.source))].join("; ") : answer.calculated ? "Used bundled refrigerant PT lookup; no AI generation." : "No matching saved textbook excerpts; answered from model knowledge."}`);
   return suggestion;
 }
 async function automate(tabId) {

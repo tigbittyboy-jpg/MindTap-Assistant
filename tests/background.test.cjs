@@ -195,11 +195,11 @@ test('detached extension tab receives control replies while ordinary webpages re
   assert.equal(app.rejectedWebpage(), undefined);
 });
 
-test('cached answers keep selection verification and record reuse', async () => {
+test('selection verification stays active with older backend responses', async () => {
   const app = harness({cached: true, count: 1, review: true});
   await app.start();
   assert.equal(app.clicks.length, 1);
-  assert.equal(app.session.runHistory[0].cached, true);
+  assert.equal(app.session.runHistory[0].cached, undefined);
   assert.equal(app.session.runHistory[0].selectionVerified, true);
 });
 

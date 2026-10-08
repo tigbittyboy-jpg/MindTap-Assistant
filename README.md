@@ -1,10 +1,10 @@
-# MindTap Assistant — v0.6.13
+# MindTap Assistant — v0.6.14
 
 A study helper for your MindTap questions and textbook.
 
 **Start with the easy setup below. You do not need Terminal, Python, or AI for it.**
 
-[Download v0.6.13](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.13.zip)
+[Download v0.6.14](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.14.zip)
 
 ## Easy setup: textbook mode
 
@@ -12,10 +12,10 @@ These steps work on **Mac and Windows**. You need **Google Chrome** and access t
 
 ### 1. Download and open the folder
 
-1. Click **Download v0.6.13** above.
+1. Click **Download v0.6.14** above.
 2. Open your computer's **Downloads** folder.
 3. Open the downloaded ZIP. On a Mac, double-click it. On Windows, right-click it and choose **Extract All**.
-4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.13**.
+4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.14**.
 5. You should see **backend**, **extension**, and this README inside it.
 6. Move this whole folder somewhere you will keep it, such as **Documents**. You can rename it **MindTap Assistant**.
 
@@ -41,7 +41,7 @@ MindTap Assistant
 
 **Do not select the ZIP, the backend folder, or the big outer folder.**
 
-You should now see a card called **MindTap Study Assistant**, with version **0.6.13**.
+You should now see a card called **MindTap Study Assistant**, with version **0.6.14**.
 
 ### 3. Put its icon beside the address bar
 
@@ -308,7 +308,7 @@ Keep the old folder's name and location the same. You are replacing its contents
 | **Could not connect to local Ollama** | Open Ollama. If needed, run `ollama serve` in a second Terminal or PowerShell window and leave it open. |
 | **Model not found** | Run `ollama pull qwen3:8b` and wait for it to finish. |
 | **Restart the backend / textbook context not accepted** | Stop the old helper, replace the project files with the current version, and start the updated helper. |
-| **Answers are slow** | Keep Ollama open, use `OLLAMA_THINK=false` as shown above, and close memory-heavy apps. Repeat questions may reuse a cached answer. |
+| **Answers are slow** | Keep Ollama open, use `OLLAMA_THINK=false` as shown above, and close memory-heavy apps. |
 
 ## Delete saved textbook sections
 
@@ -370,7 +370,7 @@ py -3 backend/server.py
 
 Use `python backend/server.py` on the last line if your installation uses **python** instead of **py -3**.
 
-Repeat answers are cached only when the question, ordered choices, textbook passages, and model settings match. The cache is limited to 256 answers / 8 MB and clears when the helper restarts. Cached answers can preserve mistakes too.
+AI answers are not cached. Clicking Analyze again makes a fresh model request, including for repeat questions. Saved textbook excerpts remain available.
 
 ## For people changing the code
 

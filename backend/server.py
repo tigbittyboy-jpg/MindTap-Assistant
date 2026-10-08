@@ -1,10 +1,8 @@
 """Local Ollama gateway. No third-party Python dependencies."""
-import hashlib
 import json
 import os
 import sys
 import threading
-from collections import OrderedDict
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -146,62 +144,20 @@ def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS, settings=None):
     return answer
 
 
-# Session-only LRU: bounded memory, no textbook or question files written to disk.
-ANSWER_CACHE = OrderedDict()
-CACHE_LOCK = threading.Lock()
+# Serialize model requests to avoid competing generations on local hardware.
 GENERATION_LOCK = threading.Lock()
-CACHE_MAX_ENTRIES = 256
-CACHE_MAX_BYTES = 8 * 1024 * 1024
-cache_bytes = 0
-
-
-def clear_answer_cache():
-    global cache_bytes
-    with CACHE_LOCK:
-        ANSWER_CACHE.clear()
-        cache_bytes = 0
-
-
-def cached_answer(key):
-    with CACHE_LOCK:
-        if key not in ANSWER_CACHE:
-            return None
-        encoded = ANSWER_CACHE[key]
-        ANSWER_CACHE.move_to_end(key)
-        return {**json.loads(encoded), 'cached': True}
 
 
 def analyze(data):
-    global cache_bytes
     question = validate_question(data)
     calculated = calculate_hvac(question)
     if calculated is not None:
         return calculated
     settings = generation_settings()
-    key = hashlib.sha256(json.dumps({'question': question, 'settings': settings,
-        'instructions': ANSWER_INSTRUCTIONS, 'endpoint': OLLAMA_BASE_URL},
-        sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    cached = cached_answer(key)
-    if cached is not None:
-        return cached
-    # Serialize misses; cached answers remain available during another generation.
     with GENERATION_LOCK:
-        cached = cached_answer(key)
-        if cached is not None:
-            return cached
         answer = analyze_ollama(question, settings=settings)
-        result = {**answer, 'analysis_mode': 'single_pass',
-                  'reference_count': len(question['references']), 'cached': False}
-        encoded = json.dumps(result, ensure_ascii=False).encode()
-        with CACHE_LOCK:
-            if len(encoded) <= CACHE_MAX_BYTES:
-                while ANSWER_CACHE and (len(ANSWER_CACHE) >= CACHE_MAX_ENTRIES
-                                        or cache_bytes + len(encoded) > CACHE_MAX_BYTES):
-                    _, removed = ANSWER_CACHE.popitem(last=False)
-                    cache_bytes -= len(removed)
-                ANSWER_CACHE[key] = encoded
-                cache_bytes += len(encoded)
-        return result
+        return {**answer, 'analysis_mode': 'single_pass',
+                'reference_count': len(question['references']), 'cached': False}
 
 
 

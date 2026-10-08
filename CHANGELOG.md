@@ -1,3 +1,9 @@
+# v0.6.14
+
+- Removed AI answer caching: repeat analyses and simultaneous requests each generate a fresh answer.
+- Removed cached-answer reuse notices; saved textbook excerpts and bundled PT tables remain available.
+- Update the backend and restart it to discard the old in-memory cache.
+
 # v0.6.13
 
 - Save textbook list items and table rows alongside paragraphs, without nested duplicates.
