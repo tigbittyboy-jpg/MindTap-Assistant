@@ -74,12 +74,38 @@ if __name__ == '__main__':
     unittest.main()
 
 class CompoundStatementTests(unittest.TestCase):
-    def test_partial_true_rejected_but_decisive_false_allowed(self):
-        question = {'prompt': 'Each thread has a 45° angle and taper of 1/16 inch per inch.', 'choices': ['True', 'False']}
-        partial = {'index': 0, 'answer_text': 'True', 'confidence': 1, 'explanation': 'The taper is 1/16 inch per inch.'}
-        with self.assertRaises(ValueError):
-            validate_answer(partial, question, 'Ollama')
-        false = {**partial, 'index': 1, 'answer_text': 'False', 'explanation': 'The thread angle is 60°, not 45°.'}
-        self.assertEqual(validate_answer(false, question, 'Ollama')['answer_text'], 'False')
-        complete = {**partial, 'explanation': 'The specified geometry uses a 45.0° angle and 0.0625 inch per inch taper.'}
-        self.assertEqual(validate_answer(complete, question, 'Ollama')['answer_text'], 'True')
+    def setUp(self):
+        self.question = {'prompt': 'Each thread has a 45° angle and a taper of 1/16 inch per inch.', 'choices': ['True', 'False']}
+        self.checks = [{'claim_index': 0, 'status': 'false', 'reason': 'The angle is 60°, not 45°.'}, {'claim_index': 1, 'status': 'true', 'reason': 'The taper is 1/16 inch per inch.'}]
+
+    @patch('backend.server.ollama_json')
+    def test_false_clause_overrides_true_in_one_model_call(self, fetch):
+        import json
+        result = {'index': 0, 'answer_text': 'True', 'confidence': .9, 'explanation': 'Taper is correct.', 'claim_checks': self.checks}
+        fetch.return_value = {'message': {'content': json.dumps(result)}}
+        answer = analyze(self.question)
+        self.assertEqual(answer['answer_text'], 'False')
+        self.assertEqual(answer['explanation'], 'The angle is 60°, not 45°.')
+        fetch.assert_called_once()
+        payload = fetch.call_args.args[1]
+        claims = json.loads(payload['messages'][1]['content'])['claims_to_check']
+        self.assertEqual(len(claims), 2)
+        self.assertIn('45°', claims[0]['text'])
+        self.assertIn('1/16', claims[1]['text'])
+        self.assertIn('claim_checks', payload['format']['required'])
+
+    def test_combination_and_coverage(self):
+        from backend.server import compound_claims, resolve_claims
+        claims = compound_claims(self.question)
+        self.checks[0]['status'] = 'true'
+        self.assertEqual(resolve_claims({'claim_checks': self.checks}, self.question, claims)['answer_text'], 'True')
+        self.checks[0]['status'] = 'unknown'
+        with self.assertRaisesRegex(ValueError, 'unsupported'):
+            resolve_claims({'claim_checks': self.checks}, self.question, claims)
+        self.checks[1]['status'] = 'false'
+        self.assertEqual(resolve_claims({'claim_checks': self.checks}, self.question, claims)['answer_text'], 'False')
+        for checks in [self.checks[:1], [self.checks[0], self.checks[0]]]:
+            with self.assertRaises(ValueError):
+                resolve_claims({'claim_checks': checks}, self.question, claims)
+        self.assertEqual(compound_claims({'prompt':'Refrigerant contains liquid and vapor.', 'choices':['True','False']}), [])
+        self.assertEqual(compound_claims({'prompt':'The angle is 45° or the taper is 1/16.', 'choices':['True','False']}), [])

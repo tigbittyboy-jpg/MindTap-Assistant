@@ -1,7 +1,6 @@
 """Local Ollama gateway. No third-party Python dependencies."""
 import json
 import re
-from fractions import Fraction
 import os
 import sys
 import threading
@@ -85,18 +84,6 @@ def validate_answer(result, question, provider):
         if not isinstance(answer_text, str) or answer_text.strip() != question['choices'][index].strip():
             raise ValueError()
         explanation = explanation[:360]
-        choices = {choice.strip().lower().rstrip('.') for choice in question['choices']}
-        if choices == {'true', 'false'} and answer_text.strip().lower().rstrip('.') == 'true' and re.search(r'\band\b', question['prompt'], re.I):
-            def values(text):
-                text = re.sub(r'\br\s*-?\s*\d+[a-z0-9]*', '', text, flags=re.I)
-                found = re.findall(r'(?<![\w.])-?\d+(?:\.\d+)?(?:\s*/\s*\d+)?(?![\w.])', text)
-                try:
-                    return {Fraction(value.replace(' ', '')) for value in found}
-                except (ValueError, ZeroDivisionError):
-                    return set()
-            required = values(question['prompt'])
-            if len(required) > 1 and not required.issubset(values(explanation)):
-                raise ValueError('Partial numerical confirmation')
         return {'index': index, 'answer_text': question['choices'][index], 'confidence': confidence, 'explanation': explanation}
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError(f'{provider} returned an invalid answer. Review the question and retry.') from error
@@ -139,6 +126,41 @@ def warm_model():
         print('Model warm-up unavailable; the next question will retry loading it.', flush=True)
 
 
+def compound_claims(question):
+    choices = {choice.strip().lower().rstrip('.') for choice in question['choices']}
+    if choices != {'true', 'false'} or re.search(r'\bor\b', question['prompt'], re.I):
+        return []
+    parts = [part.strip(' .') for part in re.split(r'\band\b', question['prompt'], flags=re.I)]
+    # Do not split short conjunctions such as “liquid and vapor”.
+    return parts if len(parts) > 1 and all(len(part.split()) >= 3 for part in parts) else []
+
+
+def resolve_claims(result, question, claims):
+    checks = result.get('claim_checks')
+    if not isinstance(checks, list) or len(checks) != len(claims):
+        raise ValueError('AI did not evaluate every clause. Analyze again or review manually.')
+    assessed = {}
+    for check in checks:
+        if not isinstance(check, dict):
+            raise ValueError('AI returned an invalid clause assessment.')
+        number = check.get('claim_index')
+        if type(number) is not int or number in assessed or not 0 <= number < len(claims):
+            raise ValueError('AI skipped or duplicated a clause assessment.')
+        status, reason = check.get('status'), check.get('reason')
+        if status not in ('true', 'false', 'unknown') or not isinstance(reason, str) or not reason.strip():
+            raise ValueError('AI returned an incomplete clause assessment.')
+        assessed[number] = (status, reason.strip())
+    false_checks = [assessed[i] for i in range(len(claims)) if assessed[i][0] == 'false']
+    if false_checks:
+        selected, explanation = 'false', false_checks[0][1]
+    elif all(status == 'true' for status, _ in assessed.values()):
+        selected, explanation = 'true', ' '.join(assessed[i][1] for i in range(len(claims)))
+    else:
+        raise ValueError('One or more clauses are unsupported; partial evidence cannot establish True. Review manually.')
+    index = next(i for i, choice in enumerate(question['choices']) if choice.strip().lower().rstrip('.') == selected)
+    return {**result, 'index': index, 'answer_text': question['choices'][index], 'explanation': explanation[:360]}
+
+
 def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS, settings=None):
     schema = {'type': 'object', 'properties': {
         'explanation': {'type': 'string', 'maxLength': 360},
@@ -147,6 +169,18 @@ def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS, settings=None):
         'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1},
         },
         'required': ['index', 'answer_text', 'confidence', 'explanation'], 'additionalProperties': False}
+    claims = compound_claims(question)
+    model_data = model_question(question)
+    if claims:
+        model_data['claims_to_check'] = [{'claim_index': i, 'text': claim} for i, claim in enumerate(claims)]
+        schema['properties']['claim_checks'] = {'type': 'array', 'minItems': len(claims), 'maxItems': len(claims),
+            'items': {'type': 'object', 'properties': {
+                'claim_index': {'type': 'integer', 'minimum': 0, 'maximum': len(claims)-1},
+                'status': {'type': 'string', 'enum': ['true', 'false', 'unknown']},
+                'reason': {'type': 'string', 'maxLength': 180}},
+                'required': ['claim_index', 'status', 'reason'], 'additionalProperties': False}}
+        schema['required'].append('claim_checks')
+        instructions += ' Evaluate EVERY item in claims_to_check in the context of the full statement and return claim_checks. For each claim, verify its actual value/relationship, independently of other clauses. Never infer an angle from a matching taper, or one specification from another. Use unknown when evidence and your knowledge cannot establish a claim. Give the correct contrasting fact when a claim is false. The backend combines the clause statuses with logical AND.'
     settings = settings or generation_settings()
     thinking = settings['thinking']
     payload = {'model': settings['model'],
@@ -154,12 +188,14 @@ def analyze_ollama(question, instructions=ANSWER_INSTRUCTIONS, settings=None):
         'options': {'temperature': 0, 'num_ctx': 4096, 'num_predict': settings['max_tokens']},
         'messages': [
             {'role': 'system', 'content': instructions + (' /no_think' if not thinking else '')},
-            {'role': 'user', 'content': json.dumps(model_question(question))}]}
+            {'role': 'user', 'content': json.dumps(model_data)}]}
     response = ollama_json('/api/chat', payload, settings['timeout'])
     try:
         result = json.loads(response['message']['content'])
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError('Ollama did not return a complete JSON answer. Try a shorter question.') from error
+    if claims:
+        result = resolve_claims(result, question, claims)
     answer = {**validate_answer(result, question, 'Ollama'), 'provider': 'ollama',
               'model': payload['model'], 'thinking': thinking}
     return answer

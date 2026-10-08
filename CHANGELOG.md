@@ -1,3 +1,9 @@
+# v0.6.18
+
+- Replace numerical explanation coverage with structured clause assessments for compound AND true/false statements.
+- Combine clause statuses in backend code: any false clause selects False; all true selects True; unsupported clauses pause unless another clause already establishes False.
+- Use the decisive clause explanation and correct conflicting overall AI selections, within one model request. Factual clause judgments still depend on the model.
+
 # v0.6.17
 
 - Reject True responses for AND-connected numerical statements when the short explanation omits a stated numerical value.
