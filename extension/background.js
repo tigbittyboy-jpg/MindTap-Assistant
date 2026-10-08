@@ -117,6 +117,23 @@ function findReferences(data, sections) {
 async function assistanceMode() {
   return (await chrome.storage.local.get('assistanceMode')).assistanceMode === 'textbook' ? 'textbook' : 'ai';
 }
+function compressorComparison(choice, sentence, previous = '') {
+  const types = 'rotary|reciprocating|scroll|screw|centrifugal';
+  const pattern = new RegExp(`\\b(${types}) compressors?\\b[^.!?]{0,180}\\b(smaller|larger|bigger) than (${types}) compressors?\\b`);
+  const capacity = /\b(?:same|similar|equal|equivalent|comparable) capacit(?:y|ies)\b/;
+  const wanted = matchingText(choice).match(pattern);
+  if (!wanted || !capacity.test(matchingText(choice))) return false;
+  let resolved = sentence;
+  if (/^\s*(?:these compressors|they)\b/i.test(sentence)) {
+    const subjects = [...new Set([...matchingText(previous).matchAll(new RegExp(`\\b(${types}) compressors?\\b`, 'g'))].map(item => item[1]))];
+    if (subjects.length !== 1) return false;
+    resolved = sentence.replace(/^(\s*)(?:these compressors|they)\b/i, `$1${subjects[0]} compressors`);
+  }
+  const found = matchingText(resolved).match(pattern);
+  const direction = word => word === 'bigger' ? 'larger' : word;
+  return !!found && capacity.test(matchingText(resolved)) && wanted[1] === found[1] &&
+    wanted[3] === found[3] && direction(wanted[2]) === direction(found[2]);
+}
 function textbookTextMatch(data, references) {
   if (/\b(?:not|except|false|incorrect)\b/i.test(data.prompt)) return null;
   const normalize = matchingText;
@@ -131,6 +148,7 @@ function textbookTextMatch(data, references) {
     const refrigerant = choice.match(/^(?:hfc|hfo|hc) (r\d{2,4}[a-z]*)$/);
     if (refrigerant) aliases.push(refrigerant[1]);
     let derivedReason;
+    let matchMethod;
     for (const reference of references) {
       const sentences = reference.text.match(/[^.!?\n]+(?:[.!?]|$)/g) || [reference.text];
       const evidence = sentences.map((sentence, index) => {
@@ -140,12 +158,16 @@ function textbookTextMatch(data, references) {
             !questionLocation(sentence) && matchesLocation(sentences[index - 1], location)) {
           return sentences[index - 1] + ' ' + sentence;
         }
+        if (/^\s*(?:these compressors|they)\b/i.test(sentence) && index > 0) return sentences[index - 1] + ' ' + sentence;
         return sentence;
       }).find(sentence => {
         const normalized = normalize(sentence);
         const text = ' ' + normalized + ' ';
         if (location && !matchesLocation(sentence, location)) return false;
         let choiceMatches = aliases.some(alias => text.includes(' ' + alias + ' '));
+        const parts = sentence.match(/[^.!?\n]+(?:[.!?]|$)/g) || [sentence];
+        const usedComparison = !choiceMatches && parts.some((part, index) => compressorComparison(choice, part, parts[index - 1] || ''));
+        if (usedComparison) choiceMatches = true;
         // A stated single phase implies 100%; mixed percentages still require exact wording.
         if (!choiceMatches && location && /^100 (?:superheated vapor|subcooled liquid)$/.test(choice)) {
           const phaseWords = choice.replace(/^100 /, '').split(' ');
@@ -163,10 +185,14 @@ function textbookTextMatch(data, references) {
         if (/\b(?:not|never|no|without|unlike)\b|n['’]t\b/i.test(sentence)) return false;
         const tokens = new Set(referenceTokens(normalized));
         if (terms.filter(term => tokens.has(term)).length < 2) return false;
+        if (usedComparison) {
+          derivedReason = 'The passage gives the same smaller/larger comparison for the same capacity; “same capacity” matches “similar capacities.”';
+          matchMethod = 'comparison';
+        }
         if (usedSubcoolingRule) derivedReason = 'Subcooling means cooling liquid below its saturation temperature. The cited passage describes subcooling at this outlet, so the normal state is subcooled liquid.';
         return true;
       });
-      if (evidence) { matches.push({index, source: reference.source, evidence: evidence.trim(), reason: derivedReason}); break; }
+      if (evidence) { matches.push({index, source: reference.source, evidence: evidence.trim(), reason: derivedReason, method: matchMethod}); break; }
     }
   }
   return matches.length === 1 ? matches[0] : null;
@@ -200,7 +226,7 @@ async function lookupTextbook(tabId) {
   const location = questionLocation(data.prompt);
   const reason = match?.reason || (location ? `The passage matches the ${location.component} ${location.flow} asked about and this choice's phase description.` : 'Only this choice matches a relevant, non-negated sentence in the retrieved passages.');
   const heading = match
-    ? `Possible answer (${match.reason ? "HVAC rule" : "text match"}): ${data.choices[match.index]}\nWhy: ${reason}\n${match.source}: “${match.evidence}”\nThis is a text match, not a verified answer. Choose manually.\n\n`
+    ? `Possible answer (${match.method === "comparison" ? "text comparison" : match.reason ? "HVAC rule" : "text match"}): ${data.choices[match.index]}\nWhy: ${reason}\n${match.source}: “${match.evidence}”\nThis is a text match, not a verified answer. Choose manually.\n\n`
     : 'No distinct answer text match. Review these passages and choose manually.\n\n';
   return report(heading + 'Textbook passages · no AI\n\n' +
     references.map((item, index) => `${index + 1}. ${item.source}\n${item.text}`).join('\n\n'));

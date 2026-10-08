@@ -1,5 +1,12 @@
 # Release notes
 
+## v0.6.8
+
+- Match smaller/larger compressor comparisons while preserving which compressor is being compared with which.
+- Resolve “these compressors” from one nearby sentence with an unambiguous named compressor type.
+- Treat same/similar/equal capacity wording as equivalent and show a comparison explanation with its source.
+- No AI or backend required; incompatible comparisons remain inconclusive.
+
 ## v0.6.7
 
 - Require retrieved passages to describe the asked HVAC component connection; do not qualify text from section titles or generic words alone.

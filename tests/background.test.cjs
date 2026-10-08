@@ -300,3 +300,14 @@ test('the actual provided definition resolves the condenser state without AI', a
   assert.match(result.message,/3.9. The Condenser/);
   assert.equal(app.requests.length,0);
 });
+test('actual rotary comparison is resolved through retrieval without AI',async()=>{
+ const app=harness({assistanceMode:'textbook',questionData:{prompt:'Which of the following statements is true with regards to reciprocating and rotary compressors?',choices:[
+ 'Both rotary and reciprocating compressors are equipped with suction and discharge valves.',
+ 'For compressors with similar capacities, rotary compressors are smaller than reciprocating compressors.',
+ 'Both rotary and reciprocating compressors can be opened for service.',
+ 'Rotary and reciprocating compressors with similar capacities are similarly sized.']},textbookSections:[{title:'3.8. The Compressor',text:'Rotary compressors are typically used for applications in the small equipment range, such as window air conditioners, household refrigerators, and some residential air-conditioning systems. These compressors are desirable for these applications because they are usually physically smaller than reciprocating compressors of the same capacity.'}]});
+ const result=await app.command({action:'analyze',tabId:1});
+ assert.match(result.message,/Possible answer \(text comparison\): For compressors with similar capacities, rotary compressors are smaller/);
+ assert.match(result.message,/same capacity/);
+ assert.equal(app.requests.length,0);
+});

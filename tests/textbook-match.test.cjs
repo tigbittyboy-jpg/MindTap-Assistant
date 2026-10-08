@@ -97,3 +97,24 @@ test('subcooling rule requires matching connection and normal state wording', ()
   assert.equal(match(statePrompt,stateChoices,'At the outlet of the condenser there is no subcooling compared with saturation.'),null);
   assert.equal(match(statePrompt,stateChoices,'At the outlet of the condenser there is 0°F of subcooling compared with saturation.'),null);
 });
+const comparisonPrompt='Which of the following statements is true with regards to reciprocating and rotary compressors?';
+const comparisonChoices=[
+ 'Both rotary and reciprocating compressors are equipped with suction and discharge valves.',
+ 'For compressors with similar capacities, rotary compressors are smaller than reciprocating compressors.',
+ 'Both rotary and reciprocating compressors can be opened for service.',
+ 'Rotary and reciprocating compressors with similar capacities are similarly sized.'];
+const comparisonPassage='Rotary compressors are typically used for applications in the small equipment range, such as window air conditioners, household refrigerators, and some residential air-conditioning systems. These compressors are desirable for these applications because they are usually physically smaller than reciprocating compressors of the same capacity. Rotary compressors are extremely efficient and have few moving parts.';
+test('actual compressor passage supports the second choice through nearby subject context',()=>{
+ const result=match(comparisonPrompt,comparisonChoices,comparisonPassage);
+ assert.equal(result.index,1);
+ assert.equal(result.method,'comparison');
+ assert.match(result.evidence,/These compressors/);
+ assert.match(result.reason,/same capacity/);
+});
+test('comparison preserves subject, direction, and capacity qualifications',()=>{
+ assert.equal(match(comparisonPrompt,comparisonChoices,'Reciprocating compressors are smaller than rotary compressors of the same capacity.'),null);
+ assert.equal(match(comparisonPrompt,comparisonChoices,'Rotary compressors are larger than reciprocating compressors of the same capacity.'),null);
+ assert.equal(match(comparisonPrompt,comparisonChoices,'Rotary compressors are smaller than reciprocating compressors of different capacities.'),null);
+ assert.equal(match(comparisonPrompt,comparisonChoices,'Rotary compressors are not smaller than reciprocating compressors of the same capacity.'),null);
+ assert.equal(match(comparisonPrompt,comparisonChoices,'Rotary compressors and reciprocating compressors are common. These compressors are smaller than reciprocating compressors of the same capacity.'),null);
+});
