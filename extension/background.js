@@ -198,13 +198,19 @@ function textbookTextMatch(data, references) {
   return matches.length === 1 ? matches[0] : null;
 }
 const ptTables = {};
+let ptCatalog;
 async function calculateQuestion(data) {
   if (!hvacCalculator.kind(data.prompt)) return null;
   const fluid = hvacCalculator.refrigerant(data.prompt);
-  const file = {'R-410A': 'r410a', 'R-22': 'r22'}[fluid];
+  if (!ptCatalog) {
+    const response = await fetch(chrome.runtime.getURL('data/refrigerants.json'));
+    if (!response.ok) throw Error('Bundled refrigerant catalog could not be loaded. Reload the extension.');
+    ptCatalog = await response.json();
+  }
+  const file = ptCatalog[fluid]?.file;
   if (!file) return hvacCalculator.calculateHVAC(data, {});
   if (!ptTables[fluid]) {
-    const response = await fetch(chrome.runtime.getURL(`data/${file}-pt.json`));
+    const response = await fetch(chrome.runtime.getURL(`data/${file}`));
     if (!response.ok) throw Error('Bundled pressure–temperature table could not be loaded. Reload the extension.');
     ptTables[fluid] = await response.json();
   }

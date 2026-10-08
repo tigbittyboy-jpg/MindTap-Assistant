@@ -5,7 +5,10 @@ from pathlib import Path
 
 TABLE = json.loads((Path(__file__).resolve().parents[1] / 'extension/data/r410a-pt.json').read_text())
 
-TABLES = {name: json.loads((Path(__file__).resolve().parents[1] / f'extension/data/{filename}-pt.json').read_text()) for name, filename in [('R-410A', 'r410a'), ('R-22', 'r22')]}
+DATA_FOLDER = Path(__file__).resolve().parents[1] / 'extension/data'
+CATALOG = json.loads((DATA_FOLDER / 'refrigerants.json').read_text())
+TABLES = {}
+
 
 def calculate_hvac(question):
     prompt = question['prompt'].replace('−', '-')
@@ -21,17 +24,21 @@ def calculate_hvac(question):
         raise ValueError(kind.capitalize() + ' calculation paused: ' + message)
     if has(r'\b(?:not|except)\b') or (sub and superheat):
         fail('the question needs interpretation beyond one direct calculation.')
-    fluids = {'R-' + match.upper() for match in re.findall(r'\br\s*-?\s*(\d{2,4}[a-z]*)\b', re.sub('[−–‑]', '-', prompt), re.I)}
-    if len(fluids) != 1 or next(iter(fluids)) not in TABLES:
-        fail('the bundled lookup supports R-410A and R-22 only. Identify one supported refrigerant or review the chart manually.')
+    fluids = {'R-' + match.upper() for match in re.findall(r'\br\s*-?\s*(c?\d{2,4}[a-z]*(?:\([ez]\))?)(?![a-z0-9(])', re.sub('[−–‑]', '-', prompt), re.I)}
+    if len(fluids) != 1 or next(iter(fluids)) not in CATALOG:
+        fail('identify one supported refrigerant; no bundled PT data is available for this selection. Review its chart manually.')
     fluid = next(iter(fluids))
-    table = TABLES[fluid]
+    filename = CATALOG[fluid]['file']
+    if filename not in TABLES:
+        TABLES[filename] = json.loads((DATA_FOLDER / filename).read_text())
+    table = TABLES[filename]
     if kind == 'subcooling' and (not has(r'\b(?:condenser|liquid[- ]line)\b') or not has(r'\b(?:outlet|liquid[- ]line)\b')):
         fail('identify a condenser outlet or liquid-line temperature.')
     if kind == 'superheat' and not has(r'\b(?:suction|vapor|vapour|gas|evaporator)\b'):
         fail('identify a measured vapor/suction temperature.')
-    pressures = re.findall(r'(-?\d+(?:\.\d+)?)\s*(psig|psia|psi|bar|kpa)\b', prompt, re.I)
-    temperatures = re.findall(r'(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?(f(?:ahrenheit)?|c(?:elsius)?)\b', prompt, re.I)
+    measurements = re.sub(r'\br\s*-?\s*c?\d{2,4}[a-z]*(?:\([ez]\))?(?![a-z0-9(])', '', re.sub('[−–‑]', '-', prompt), flags=re.I)
+    pressures = re.findall(r'(-?\d+(?:\.\d+)?)\s*(psig|psia|psi|bar|kpa)\b', measurements, re.I)
+    temperatures = re.findall(r'(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?(f(?:ahrenheit)?|c(?:elsius)?)\b', measurements, re.I)
     if len(pressures) != 1 or pressures[0][1].lower() != 'psig':
         fail('supply one gauge pressure in psig; psia and other units are not supported yet.')
     if (len(temperatures) != 0 if kind == 'saturation' else len(temperatures) != 1 or not temperatures[0][1].lower().startswith('f')):

@@ -1,3 +1,10 @@
+# v0.6.11
+
+- Expanded bundled PT data to 120 refrigerants and blends, including R-32, R-134a, R-290, R-407C, R-454B, and R-744.
+- Selects matching liquid/vapor curves from a shared catalog, with per-fluid ranges and no extrapolation.
+- Unsupported or unreliable saturation data still pauses; tables total about 2 MB.
+- Update the extension and restart the updated backend.
+
 # v0.6.10
 
 - Added verified R-22 pressure–temperature data for saturation, superheat, and subcooling in both modes.

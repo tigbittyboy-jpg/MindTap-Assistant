@@ -39,3 +39,17 @@ class SubcoolingTests(unittest.TestCase):
         self.assertEqual(TABLE['pressure_unit'], 'psig')
         self.assertEqual(TABLE['eos_reference'], 'Lemmon-IJT-2003')
         self.assertTrue(all(a[0] < b[0] for a, b in zip(TABLE['points'], TABLE['points'][1:])))
+
+class CatalogTests(unittest.TestCase):
+    def test_every_catalog_alias_selects_its_own_curve(self):
+        from backend.hvac_calculator import CATALOG, DATA_FOLDER
+        for name, entry in CATALOG.items():
+            with self.subTest(name=name):
+                data = json.loads((DATA_FOLDER / entry['file']).read_text())
+                pressure, temperature = data['dew_points'][len(data['dew_points']) // 2]
+                answer = calculate_subcooling({'prompt': f'{name} evaporator pressure is {pressure} psig and outlet temperature is {temperature+10}°F. What is superheat?', 'choices':['10°F', '20°F']})
+                self.assertEqual(answer['answer_text'], '10°F')
+                self.assertEqual(answer['calculation_source'], data['source'])
+                pressure, temperature = data['points'][len(data['points']) // 2]
+                answer = calculate_subcooling({'prompt': f'{name} condenser pressure is {pressure} psig and condenser outlet temperature is {temperature-10}°F. What is subcooling?', 'choices':['10°F', '20°F']})
+                self.assertEqual(answer['answer_text'], '10°F')

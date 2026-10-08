@@ -1,10 +1,10 @@
-# MindTap Assistant — v0.6.10
+# MindTap Assistant — v0.6.11
 
 A study helper for your MindTap questions and textbook.
 
 **Start with the easy setup below. You do not need Terminal, Python, or AI for it.**
 
-[Download v0.6.10](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.10.zip)
+[Download v0.6.11](https://github.com/tigbittyboy-jpg/MindTap-Assistant/archive/refs/tags/v0.6.11.zip)
 
 ## Easy setup: textbook mode
 
@@ -12,10 +12,10 @@ These steps work on **Mac and Windows**. You need **Google Chrome** and access t
 
 ### 1. Download and open the folder
 
-1. Click **Download v0.6.10** above.
+1. Click **Download v0.6.11** above.
 2. Open your computer's **Downloads** folder.
 3. Open the downloaded ZIP. On a Mac, double-click it. On Windows, right-click it and choose **Extract All**.
-4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.10**.
+4. Open the folder that was created. Its name should look like **MindTap-Assistant-0.6.11**.
 5. You should see **backend**, **extension**, and this README inside it.
 6. Move this whole folder somewhere you will keep it, such as **Documents**. You can rename it **MindTap Assistant**.
 
@@ -41,7 +41,7 @@ MindTap Assistant
 
 **Do not select the ZIP, the backend folder, or the big outer folder.**
 
-You should now see a card called **MindTap Study Assistant**, with version **0.6.10**.
+You should now see a card called **MindTap Study Assistant**, with version **0.6.11**.
 
 ### 3. Put its icon beside the address bar
 
@@ -81,7 +81,7 @@ It saves the sections you open. **It does not download the whole book.** Each cl
 
 Sometimes it shows a **Possible answer (text match)** and a short reason. It recognizes same-capacity compressor size comparisons with nearby “these compressors” context, some equivalent phase wording, checks the asked component inlet/outlet, and can connect a relevant subcooling definition to the expected subcooled-liquid state. When it uses that definition, the result is labeled **Possible answer (HVAC rule)** and explains the rule. This means one choice matched the saved text; it is not a guaranteed correct answer. If it cannot find a clear match, it shows passages for you to read.
 
-It can also calculate supported **R-410A and R-22 saturation temperatures, subcooling, and superheat** without AI. See [calculator details](#calculator-details) below.
+It can also calculate supported **bundled refrigerant saturation temperatures, subcooling, and superheat** without AI. See [calculator details](#calculator-details) below.
 
 **Textbook-mode setup is finished. Skip the AI steps unless you want AI answers.**
 
@@ -320,7 +320,7 @@ Saved sections stay in this extension's local Chrome storage. They are not autom
 
 ## Calculator details
 
-The built-in formula engine supports **R-410A and R-22** questions using one pressure in **psig** and temperature answer choices in **°F**:
+The built-in formula engine supports **120 refrigerants and blends** questions using one pressure in **psig** and temperature answer choices in **°F**:
 
 - **Saturation temperature:** look up the temperature for the stated pressure. Pressure is not a temperature: **95 psig → about 29°F**, not 95°F or 118°F.
 - **Subcooling:** bubble-point saturation temperature **minus** measured liquid temperature.
@@ -334,7 +334,11 @@ Both R-410A phases use bundled [CoolProp 7.2.0 R410A data](https://coolprop.org/
 
 For **417.4 psig** and a liquid temperature of **108°F**, subcooling is about **11.6°F**, matching the rounded choice **12°F**. For **95 psig** and suction vapor at **40°F**, superheat is about **11°F**.
 
-Refrigerants other than R-410A and R-22, Celsius, psia, multiple pressures or measured temperatures, and ambiguous choices need manual review. You do not need to install CoolProp to use the engine.
+Refrigerants absent from the bundled catalog, Celsius, psia, multiple pressures or measured temperatures, and ambiguous choices need manual review. You do not need to install CoolProp to use the engine.
+
+The bundled catalog includes: R-11, R-113, R-114, R-115, R-1150, R-116, R-12, R-123, R-1233ZD(E), R-1234YF, R-1234ZE(E), R-1234ZE(Z), R-124, R-1243ZF, R-125, R-1270, R-13, R-1336MZZ(E), R-134A, R-14, R-141B, R-142B, R-143A, R-152A, R-161, R-170, R-21, R-218, R-22, R-227EA, R-23, R-236EA, R-236FA, R-245CA, R-245FA, R-290, R-32, R-365MFC, R-40, R-404A, R-407A, R-407B, R-407C, R-407D, R-407E, R-407F, R-41, R-410A, R-410B, R-411A, R-411B, R-415A, R-415B, R-417A, R-417B, R-417C, R-419A, R-419B, R-420A, R-421A, R-421B, R-422A, R-422B, R-422C, R-422D, R-422E, R-423A, R-425A, R-427A, R-428A, R-430A, R-431A, R-432A, R-433A, R-433B, R-433C, R-434A, R-436A, R-436B, R-439A, R-440A, R-441A, R-442A, R-443A, R-444A, R-444B, R-449A, R-449B, R-451A, R-451B, R-452A, R-454A, R-454B, R-50, R-500, R-501, R-502, R-503, R-507A, R-508A, R-508B, R-509A, R-510A, R-511A, R-512A, R-513A, R-600, R-600A, R-601, R-601A, R-702, R-717, R-718, R-720, R-728, R-729, R-732, R-740, R-744, R-C318.
+
+Tables use separate liquid/bubble and vapor/dew curves, with a recorded range for each refrigerant. Some blends (including R-448A) cannot be generated reliably by this library and are omitted. This is broad coverage, not every refrigerant ever made. The expanded tables are about 2 MB and do not count toward the textbook archive limit. Regenerate the catalog with `scripts/build_refrigerant_tables.py` using CoolProp 7.2.0.
 
 ## AI speed settings
 

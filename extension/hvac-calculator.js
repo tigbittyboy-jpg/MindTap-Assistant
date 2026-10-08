@@ -10,7 +10,7 @@
     return null;
   }
   function refrigerant(prompt) {
-    const names = [...prompt.replace(/[−–‑]/g, '-').matchAll(/\br\s*-?\s*(\d{2,4}[a-z]*)\b/gi)].map(match => 'R-' + match[1].toUpperCase());
+    const names = [...prompt.replace(/[−–‑]/g, '-').matchAll(/\br\s*-?\s*(c?\d{2,4}[a-z]*(?:\([ez]\))?)(?![a-z0-9(])/gi)].map(match => 'R-' + match[1].toUpperCase());
     const unique = [...new Set(names)];
     return unique.length === 1 ? unique[0] : null;
   }
@@ -21,14 +21,15 @@
     const fail = message => { throw Error(`${type === 'subcooling' ? 'Subcooling' : type === 'superheat' ? 'Superheat' : 'Saturation'} calculation paused: ${message}`); };
     if (/\b(?:not|except)\b/i.test(prompt) || (/\bsub[- ]?cool/i.test(prompt) && /\bsuperheat/i.test(prompt))) fail('the question needs interpretation beyond one direct calculation.');
     const fluid = refrigerant(prompt);
-    if (!['R-410A', 'R-22'].includes(fluid)) fail('the bundled lookup supports R-410A and R-22 only. Identify one supported refrigerant or review the chart manually.');
+    if (!fluid || !table.refrigerant) fail('identify one supported refrigerant; no bundled PT data is available for this selection. Review its chart manually.');
     if (type === 'subcooling' && (!/\b(?:condenser|liquid[- ]line)\b/i.test(prompt) || !/\b(?:outlet|liquid[- ]line)\b/i.test(prompt))) fail('identify a condenser outlet or liquid-line temperature.');
     if (type === 'superheat' && !/\b(?:suction|vapor|vapour|gas|evaporator)\b/i.test(prompt)) fail('identify a measured vapor/suction temperature.');
-    const pressures = [...prompt.matchAll(/(-?\d+(?:\.\d+)?)\s*(psig|psia|psi|bar|kpa)\b/gi)];
-    const temperatures = [...prompt.matchAll(/(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?(f(?:ahrenheit)?|c(?:elsius)?)\b/gi)];
+    const measurements = prompt.replace(/\br\s*-?\s*c?\d{2,4}[a-z]*(?:\([ez]\))?(?![a-z0-9(])/gi, '');
+    const pressures = [...measurements.matchAll(/(-?\d+(?:\.\d+)?)\s*(psig|psia|psi|bar|kpa)\b/gi)];
+    const temperatures = [...measurements.matchAll(/(-?\d+(?:\.\d+)?)\s*(?:°\s*|degrees?\s*)?(f(?:ahrenheit)?|c(?:elsius)?)\b/gi)];
     if (pressures.length !== 1 || pressures[0][2].toLowerCase() !== 'psig') fail('supply one gauge pressure in psig; psia and other units are not supported yet.');
     if (type === 'saturation' ? temperatures.length !== 0 : temperatures.length !== 1 || !/^f/i.test(temperatures[0][2])) fail('supply one measured temperature in °F for subcooling/superheat, or none for a pressure-only lookup; multiple temperatures and Celsius need manual review.');
-    if (table.refrigerant !== fluid || table.pressure_unit !== 'psig' || table.temperature_unit !== 'degF') fail('the pressure–temperature table is invalid.');
+    if ((table.refrigerant !== fluid && !(table.aliases || []).includes(fluid)) || table.pressure_unit !== 'psig' || table.temperature_unit !== 'degF') fail('the pressure–temperature table is invalid; identify one supported refrigerant and its matching table.');
     const pressure = Number(pressures[0][1]);
     function lookup(rows) {
       if (!rows || pressure < rows[0][0] || pressure > rows.at(-1)[0]) fail('pressure is outside the bundled table range.');

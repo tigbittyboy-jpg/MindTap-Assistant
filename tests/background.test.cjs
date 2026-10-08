@@ -48,7 +48,7 @@ function harness({questionData, switchToTextbookOnFetch = false, assistanceMode 
   const context = vm.createContext({chrome, crypto: {randomUUID: () => `entry-${requests.length}`},
     setTimeout: fn => queueMicrotask(fn), AbortSignal, Date, TextEncoder,
     fetch: async (_url, request) => {
-      if (/^chrome-extension:\/\/test\/data\/(r410a|r22)-pt\.json$/.test(_url)) return {ok: true, json: async () => JSON.parse(fs.readFileSync(path.join(__dirname, '../extension/data/', _url.split('/').at(-1)), 'utf8'))};
+      if (/^chrome-extension:\/\/test\/data\/(?:refrigerants|[a-z0-9]+-pt)\.json$/.test(_url)) return {ok: true, json: async () => JSON.parse(fs.readFileSync(path.join(__dirname, '../extension/data/', _url.split('/').at(-1)), 'utf8'))};
       const body = JSON.parse(request.body); requests.push(body);
       if (switchToTextbookOnFetch) await new Promise(resolve => listener({action: 'setAssistanceMode', mode: 'textbook'}, {id: 'test'}, resolve));
       if (disagreement) return {ok: false, json: async () => ({error: 'Textbook reference could not support an answer. Review manually.'})};
@@ -282,10 +282,10 @@ test('AI mode calculator bypasses model and preserves answer verification', asyn
 });
 test('unsupported subcooling lookup stops without an AI request', async () => {
   const app = harness({questionData: {
-    prompt: 'R-134a condensing pressure is 417.4 psig and condenser outlet temperature is 108°F. Calculate subcooling.',
+    prompt: 'R-9999 condensing pressure is 417.4 psig and condenser outlet temperature is 108°F. Calculate subcooling.',
     choices: ['12°F', '21°F']}});
   const result = await app.command({action: 'analyze', tabId: 1});
-  assert.match(result.error, /supports R-410A and R-22 only/);
+  assert.match(result.error, /no bundled PT data/);
   assert.equal(app.requests.length, 0);
 });
 

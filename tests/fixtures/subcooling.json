@@ -34,14 +34,14 @@
   },
   {
     "name": "other refrigerant",
-    "prompt": "The condensing pressure is 417.4 psig for R-134a and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
+    "prompt": "The condensing pressure is 417.4 psig for R-9999 and the condenser outlet temperature is 108\u00b0F. How much subcooling is there in the condenser?",
     "choices": [
       "12\u00b0F",
       "21\u00b0F",
       "42\u00b0F",
       "7\u00b0F"
     ],
-    "error": "R-410A and R-22 only"
+    "error": "one supported refrigerant"
   },
   {
     "name": "above chart range",
@@ -216,14 +216,14 @@
   },
   {
     "name": "saturation other refrigerant",
-    "prompt": "Saturated R-134a at a pressure of 95 psig will change at a temperature of",
+    "prompt": "Saturated R-9999 at a pressure of 95 psig will change at a temperature of",
     "choices": [
       "118\u00b0F.",
       "95\u00b0F.",
       "295\u00b0F.",
       "29\u00b0F."
     ],
-    "error": "R-410A and R-22 only"
+    "error": "one supported refrigerant"
   },
   {
     "name": "saturation no choice",

@@ -1,0 +1,506 @@
+{
+  "R-11": {
+    "file": "r11-pt.json",
+    "refrigerant": "R-11"
+  },
+  "R-113": {
+    "file": "r113-pt.json",
+    "refrigerant": "R-113"
+  },
+  "R-114": {
+    "file": "r114-pt.json",
+    "refrigerant": "R-114"
+  },
+  "R-115": {
+    "file": "r115-pt.json",
+    "refrigerant": "R-115"
+  },
+  "R-1150": {
+    "file": "r1150-pt.json",
+    "refrigerant": "R-1150"
+  },
+  "R-116": {
+    "file": "r116-pt.json",
+    "refrigerant": "R-116"
+  },
+  "R-12": {
+    "file": "r12-pt.json",
+    "refrigerant": "R-12"
+  },
+  "R-123": {
+    "file": "r123-pt.json",
+    "refrigerant": "R-123"
+  },
+  "R-1233ZD": {
+    "file": "r1233zde-pt.json",
+    "refrigerant": "R-1233ZD(E)"
+  },
+  "R-1233ZD(E)": {
+    "file": "r1233zde-pt.json",
+    "refrigerant": "R-1233ZD(E)"
+  },
+  "R-1233ZDE": {
+    "file": "r1233zde-pt.json",
+    "refrigerant": "R-1233ZD(E)"
+  },
+  "R-1234YF": {
+    "file": "r1234yf-pt.json",
+    "refrigerant": "R-1234YF"
+  },
+  "R-1234ZE": {
+    "file": "r1234zee-pt.json",
+    "refrigerant": "R-1234ZE(E)"
+  },
+  "R-1234ZE(E)": {
+    "file": "r1234zee-pt.json",
+    "refrigerant": "R-1234ZE(E)"
+  },
+  "R-1234ZE(Z)": {
+    "file": "r1234zez-pt.json",
+    "refrigerant": "R-1234ZE(Z)"
+  },
+  "R-1234ZEE": {
+    "file": "r1234zee-pt.json",
+    "refrigerant": "R-1234ZE(E)"
+  },
+  "R-1234ZEZ": {
+    "file": "r1234zez-pt.json",
+    "refrigerant": "R-1234ZE(Z)"
+  },
+  "R-124": {
+    "file": "r124-pt.json",
+    "refrigerant": "R-124"
+  },
+  "R-1243ZF": {
+    "file": "r1243zf-pt.json",
+    "refrigerant": "R-1243ZF"
+  },
+  "R-125": {
+    "file": "r125-pt.json",
+    "refrigerant": "R-125"
+  },
+  "R-1270": {
+    "file": "r1270-pt.json",
+    "refrigerant": "R-1270"
+  },
+  "R-13": {
+    "file": "r13-pt.json",
+    "refrigerant": "R-13"
+  },
+  "R-1336MZZ(E)": {
+    "file": "r1336mzze-pt.json",
+    "refrigerant": "R-1336MZZ(E)"
+  },
+  "R-1336MZZE": {
+    "file": "r1336mzze-pt.json",
+    "refrigerant": "R-1336MZZ(E)"
+  },
+  "R-134A": {
+    "file": "r134a-pt.json",
+    "refrigerant": "R-134A"
+  },
+  "R-14": {
+    "file": "r14-pt.json",
+    "refrigerant": "R-14"
+  },
+  "R-141B": {
+    "file": "r141b-pt.json",
+    "refrigerant": "R-141B"
+  },
+  "R-142B": {
+    "file": "r142b-pt.json",
+    "refrigerant": "R-142B"
+  },
+  "R-143A": {
+    "file": "r143a-pt.json",
+    "refrigerant": "R-143A"
+  },
+  "R-152A": {
+    "file": "r152a-pt.json",
+    "refrigerant": "R-152A"
+  },
+  "R-161": {
+    "file": "r161-pt.json",
+    "refrigerant": "R-161"
+  },
+  "R-170": {
+    "file": "r170-pt.json",
+    "refrigerant": "R-170"
+  },
+  "R-21": {
+    "file": "r21-pt.json",
+    "refrigerant": "R-21"
+  },
+  "R-218": {
+    "file": "r218-pt.json",
+    "refrigerant": "R-218"
+  },
+  "R-22": {
+    "file": "r22-pt.json",
+    "refrigerant": "R-22"
+  },
+  "R-227EA": {
+    "file": "r227ea-pt.json",
+    "refrigerant": "R-227EA"
+  },
+  "R-23": {
+    "file": "r23-pt.json",
+    "refrigerant": "R-23"
+  },
+  "R-236EA": {
+    "file": "r236ea-pt.json",
+    "refrigerant": "R-236EA"
+  },
+  "R-236FA": {
+    "file": "r236fa-pt.json",
+    "refrigerant": "R-236FA"
+  },
+  "R-245CA": {
+    "file": "r245ca-pt.json",
+    "refrigerant": "R-245CA"
+  },
+  "R-245FA": {
+    "file": "r245fa-pt.json",
+    "refrigerant": "R-245FA"
+  },
+  "R-290": {
+    "file": "r290-pt.json",
+    "refrigerant": "R-290"
+  },
+  "R-32": {
+    "file": "r32-pt.json",
+    "refrigerant": "R-32"
+  },
+  "R-365MFC": {
+    "file": "r365mfc-pt.json",
+    "refrigerant": "R-365MFC"
+  },
+  "R-40": {
+    "file": "r40-pt.json",
+    "refrigerant": "R-40"
+  },
+  "R-404A": {
+    "file": "r404a-pt.json",
+    "refrigerant": "R-404A"
+  },
+  "R-407A": {
+    "file": "r407a-pt.json",
+    "refrigerant": "R-407A"
+  },
+  "R-407B": {
+    "file": "r407b-pt.json",
+    "refrigerant": "R-407B"
+  },
+  "R-407C": {
+    "file": "r407c-pt.json",
+    "refrigerant": "R-407C"
+  },
+  "R-407D": {
+    "file": "r407d-pt.json",
+    "refrigerant": "R-407D"
+  },
+  "R-407E": {
+    "file": "r407e-pt.json",
+    "refrigerant": "R-407E"
+  },
+  "R-407F": {
+    "file": "r407f-pt.json",
+    "refrigerant": "R-407F"
+  },
+  "R-41": {
+    "file": "r41-pt.json",
+    "refrigerant": "R-41"
+  },
+  "R-410A": {
+    "file": "r410a-pt.json",
+    "refrigerant": "R-410A"
+  },
+  "R-410B": {
+    "file": "r410b-pt.json",
+    "refrigerant": "R-410B"
+  },
+  "R-411A": {
+    "file": "r411a-pt.json",
+    "refrigerant": "R-411A"
+  },
+  "R-411B": {
+    "file": "r411b-pt.json",
+    "refrigerant": "R-411B"
+  },
+  "R-415A": {
+    "file": "r415a-pt.json",
+    "refrigerant": "R-415A"
+  },
+  "R-415B": {
+    "file": "r415b-pt.json",
+    "refrigerant": "R-415B"
+  },
+  "R-417A": {
+    "file": "r417a-pt.json",
+    "refrigerant": "R-417A"
+  },
+  "R-417B": {
+    "file": "r417b-pt.json",
+    "refrigerant": "R-417B"
+  },
+  "R-417C": {
+    "file": "r417c-pt.json",
+    "refrigerant": "R-417C"
+  },
+  "R-419A": {
+    "file": "r419a-pt.json",
+    "refrigerant": "R-419A"
+  },
+  "R-419B": {
+    "file": "r419b-pt.json",
+    "refrigerant": "R-419B"
+  },
+  "R-420A": {
+    "file": "r420a-pt.json",
+    "refrigerant": "R-420A"
+  },
+  "R-421A": {
+    "file": "r421a-pt.json",
+    "refrigerant": "R-421A"
+  },
+  "R-421B": {
+    "file": "r421b-pt.json",
+    "refrigerant": "R-421B"
+  },
+  "R-422A": {
+    "file": "r422a-pt.json",
+    "refrigerant": "R-422A"
+  },
+  "R-422B": {
+    "file": "r422b-pt.json",
+    "refrigerant": "R-422B"
+  },
+  "R-422C": {
+    "file": "r422c-pt.json",
+    "refrigerant": "R-422C"
+  },
+  "R-422D": {
+    "file": "r422d-pt.json",
+    "refrigerant": "R-422D"
+  },
+  "R-422E": {
+    "file": "r422e-pt.json",
+    "refrigerant": "R-422E"
+  },
+  "R-423A": {
+    "file": "r423a-pt.json",
+    "refrigerant": "R-423A"
+  },
+  "R-425A": {
+    "file": "r425a-pt.json",
+    "refrigerant": "R-425A"
+  },
+  "R-427A": {
+    "file": "r427a-pt.json",
+    "refrigerant": "R-427A"
+  },
+  "R-428A": {
+    "file": "r428a-pt.json",
+    "refrigerant": "R-428A"
+  },
+  "R-430A": {
+    "file": "r430a-pt.json",
+    "refrigerant": "R-430A"
+  },
+  "R-431A": {
+    "file": "r431a-pt.json",
+    "refrigerant": "R-431A"
+  },
+  "R-432A": {
+    "file": "r432a-pt.json",
+    "refrigerant": "R-432A"
+  },
+  "R-433A": {
+    "file": "r433a-pt.json",
+    "refrigerant": "R-433A"
+  },
+  "R-433B": {
+    "file": "r433b-pt.json",
+    "refrigerant": "R-433B"
+  },
+  "R-433C": {
+    "file": "r433c-pt.json",
+    "refrigerant": "R-433C"
+  },
+  "R-434A": {
+    "file": "r434a-pt.json",
+    "refrigerant": "R-434A"
+  },
+  "R-436A": {
+    "file": "r436a-pt.json",
+    "refrigerant": "R-436A"
+  },
+  "R-436B": {
+    "file": "r436b-pt.json",
+    "refrigerant": "R-436B"
+  },
+  "R-439A": {
+    "file": "r439a-pt.json",
+    "refrigerant": "R-439A"
+  },
+  "R-440A": {
+    "file": "r440a-pt.json",
+    "refrigerant": "R-440A"
+  },
+  "R-441A": {
+    "file": "r441a-pt.json",
+    "refrigerant": "R-441A"
+  },
+  "R-442A": {
+    "file": "r442a-pt.json",
+    "refrigerant": "R-442A"
+  },
+  "R-443A": {
+    "file": "r443a-pt.json",
+    "refrigerant": "R-443A"
+  },
+  "R-444A": {
+    "file": "r444a-pt.json",
+    "refrigerant": "R-444A"
+  },
+  "R-444B": {
+    "file": "r444b-pt.json",
+    "refrigerant": "R-444B"
+  },
+  "R-449A": {
+    "file": "r449a-pt.json",
+    "refrigerant": "R-449A"
+  },
+  "R-449B": {
+    "file": "r449b-pt.json",
+    "refrigerant": "R-449B"
+  },
+  "R-451A": {
+    "file": "r451a-pt.json",
+    "refrigerant": "R-451A"
+  },
+  "R-451B": {
+    "file": "r451b-pt.json",
+    "refrigerant": "R-451B"
+  },
+  "R-452A": {
+    "file": "r452a-pt.json",
+    "refrigerant": "R-452A"
+  },
+  "R-454A": {
+    "file": "r454a-pt.json",
+    "refrigerant": "R-454A"
+  },
+  "R-454B": {
+    "file": "r454b-pt.json",
+    "refrigerant": "R-454B"
+  },
+  "R-50": {
+    "file": "r50-pt.json",
+    "refrigerant": "R-50"
+  },
+  "R-500": {
+    "file": "r500-pt.json",
+    "refrigerant": "R-500"
+  },
+  "R-501": {
+    "file": "r501-pt.json",
+    "refrigerant": "R-501"
+  },
+  "R-502": {
+    "file": "r502-pt.json",
+    "refrigerant": "R-502"
+  },
+  "R-503": {
+    "file": "r503-pt.json",
+    "refrigerant": "R-503"
+  },
+  "R-507A": {
+    "file": "r507a-pt.json",
+    "refrigerant": "R-507A"
+  },
+  "R-508A": {
+    "file": "r508a-pt.json",
+    "refrigerant": "R-508A"
+  },
+  "R-508B": {
+    "file": "r508b-pt.json",
+    "refrigerant": "R-508B"
+  },
+  "R-509A": {
+    "file": "r509a-pt.json",
+    "refrigerant": "R-509A"
+  },
+  "R-510A": {
+    "file": "r510a-pt.json",
+    "refrigerant": "R-510A"
+  },
+  "R-511A": {
+    "file": "r511a-pt.json",
+    "refrigerant": "R-511A"
+  },
+  "R-512A": {
+    "file": "r512a-pt.json",
+    "refrigerant": "R-512A"
+  },
+  "R-513A": {
+    "file": "r513a-pt.json",
+    "refrigerant": "R-513A"
+  },
+  "R-600": {
+    "file": "r600-pt.json",
+    "refrigerant": "R-600"
+  },
+  "R-600A": {
+    "file": "r600a-pt.json",
+    "refrigerant": "R-600A"
+  },
+  "R-601": {
+    "file": "r601-pt.json",
+    "refrigerant": "R-601"
+  },
+  "R-601A": {
+    "file": "r601a-pt.json",
+    "refrigerant": "R-601A"
+  },
+  "R-702": {
+    "file": "r702-pt.json",
+    "refrigerant": "R-702"
+  },
+  "R-717": {
+    "file": "r717-pt.json",
+    "refrigerant": "R-717"
+  },
+  "R-718": {
+    "file": "r718-pt.json",
+    "refrigerant": "R-718"
+  },
+  "R-720": {
+    "file": "r720-pt.json",
+    "refrigerant": "R-720"
+  },
+  "R-728": {
+    "file": "r728-pt.json",
+    "refrigerant": "R-728"
+  },
+  "R-729": {
+    "file": "r729-pt.json",
+    "refrigerant": "R-729"
+  },
+  "R-732": {
+    "file": "r732-pt.json",
+    "refrigerant": "R-732"
+  },
+  "R-740": {
+    "file": "r740-pt.json",
+    "refrigerant": "R-740"
+  },
+  "R-744": {
+    "file": "r744-pt.json",
+    "refrigerant": "R-744"
+  },
+  "R-C318": {
+    "file": "rc318-pt.json",
+    "refrigerant": "R-C318"
+  }
+}
