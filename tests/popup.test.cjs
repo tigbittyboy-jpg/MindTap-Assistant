@@ -86,12 +86,14 @@ test('textbook mode persists in detached UI and disables AI controls', async () 
  const app=await harness('?sourceWindow=7',{assistanceMode:'textbook'});
  assert.equal(app.w.document.querySelector('#assistanceMode').value,'textbook');
  assert.equal(app.w.document.querySelector('#analyze').textContent,'Find textbook passages');
+ for (const id of ['apply','next']) assert.equal(app.w.document.querySelector('#'+id).hidden,true);
  for(const id of ['apply','next','auto']) assert.equal(app.w.document.querySelector('#'+id).disabled,true);
  assert.match(app.w.document.querySelector('.intro').textContent,/No AI, Ollama, or backend/);
  await app.click('analyze');
  assert.equal(app.messages[0].auto,false);
  app.change({assistanceMode:{newValue:'ai'}});
  assert.equal(app.w.document.querySelector('#apply').disabled,false);
+ for (const id of ['apply','next']) assert.equal(app.w.document.querySelector('#'+id).hidden,false);
  assert.equal(app.w.document.querySelector('#analyze').textContent,'Analyze question');
 });
 test('mode selector saves preference without needing an active question tab', async () => {

@@ -106,6 +106,7 @@ function showMode(mode) {
   const textbookOnly = mode === 'textbook';
   modeSelect.value = textbookOnly ? 'textbook' : 'ai';
   document.body.classList.toggle('textbook-only', textbookOnly);
+  for (const id of ['apply', 'next']) document.querySelector('#' + id).hidden = textbookOnly;
   document.querySelector('#analyze').textContent = textbookOnly ? 'Find textbook passages' : 'Analyze question';
   for (const id of ['apply', 'next', 'auto']) document.querySelector('#' + id).disabled = textbookOnly;
   if (textbookOnly) showAutomation(false);

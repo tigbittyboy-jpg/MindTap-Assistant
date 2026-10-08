@@ -1,3 +1,9 @@
+# v0.6.12
+
+- Hide Select suggested answer and Click Next only in textbook-only/no-AI mode; keep it available in Local AI mode.
+- Let Find textbook passages fill the row for a balanced layout.
+- Extension-only change; no backend restart required.
+
 # v0.6.11
 
 - Expanded bundled PT data to 120 refrigerants and blends, including R-32, R-134a, R-290, R-407C, R-454B, and R-744.

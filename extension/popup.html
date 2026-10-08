@@ -39,6 +39,8 @@ button:focus-visible,input:focus-visible{outline:3px solid #90d8ff;outline-offse
 .mode-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;color:var(--muted);font-size:12px}
 .mode-row select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px;font:inherit;max-width:235px}
 .mode-row select:focus-visible{outline:3px solid #90d8ff;outline-offset:3px}
+button[hidden]{display:none}
+.textbook-only #analyze{grid-column:1 / -1}
 .textbook-only #status{max-height:360px}
 .credit{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:11px;color:var(--muted)}
 .credit a{color:#94e4cb;text-decoration:none}
@@ -50,7 +52,7 @@ button:disabled{opacity:.55;cursor:default}
 </style>
 </head>
 <body>
-<header><h1>MindTap Assistant</h1><span class="version">v0.6.11</span></header>
+<header><h1>MindTap Assistant</h1><span class="version">v0.6.12</span></header>
 <p class="intro">Open a question and start. Your local Ollama model answers using matching saved textbook excerpts in one pass.</p>
 <label class="mode-row" for="assistanceMode">Mode<select id="assistanceMode"><option value="ai">Local AI</option><option value="textbook">Textbook only · no AI needed</option></select></label>
 <div class="controls" aria-label="Question controls">
