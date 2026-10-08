@@ -29,7 +29,7 @@ test('reinjection updates an older helper version', () => {
   const window = fixture('<fieldset><legend>2 + 2?</legend>' + choices + '</fieldset>');
   window.mindtapAssistant = {version: 1};
   window.eval(source);
-  assert.equal(window.mindtapAssistant.version, 13);
+  assert.equal(window.mindtapAssistant.version, 14);
   assert.equal(window.mindtapAssistant.read().prompt, '2 + 2?');
 });
 
